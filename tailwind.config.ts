@@ -44,6 +44,12 @@ const config: Config = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        brand: {
+          deep: "#14213D",
+          blue: "#2563EB",
+          violet: "#7C3AED",
+          light: "#F8FAFC",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -75,6 +75,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
 
       organizations: {
@@ -105,6 +106,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
 
       organization_members: {
@@ -135,6 +137,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
 
       organization_invitations: {
@@ -171,6 +174,7 @@ export interface Database {
           accepted_at?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
 
       meetings: {
@@ -213,6 +217,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
 
       meeting_participants: {
@@ -246,6 +251,7 @@ export interface Database {
           is_present?: boolean;
           created_at?: string;
         };
+        Relationships: [];
       };
 
       media_assets: {
@@ -285,6 +291,7 @@ export interface Database {
           duration_seconds?: number | null;
           created_at?: string;
         };
+        Relationships: [];
       };
 
       processing_jobs: {
@@ -333,6 +340,7 @@ export interface Database {
           updated_at?: string;
           completed_at?: string | null;
         };
+        Relationships: [];
       };
 
       transcript_segments: {
@@ -372,6 +380,7 @@ export interface Database {
           confidence?: number;
           created_at?: string;
         };
+        Relationships: [];
       };
 
       meeting_summaries: {
@@ -408,6 +417,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
 
       meeting_minutes: {
@@ -450,6 +460,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
 
       meeting_decisions: {
@@ -495,6 +506,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
 
       meeting_tasks: {
@@ -552,6 +564,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
 
       meeting_documents: {
@@ -588,6 +601,7 @@ export interface Database {
           file_size_bytes?: number;
           created_at?: string;
         };
+        Relationships: [];
       };
 
       plans: {
@@ -624,6 +638,7 @@ export interface Database {
           is_active?: boolean;
           created_at?: string;
         };
+        Relationships: [];
       };
 
       subscriptions: {
@@ -660,6 +675,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
 
       usage_ledger: {
@@ -705,6 +721,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
 
       payment_events: {
@@ -744,6 +761,7 @@ export interface Database {
           payload?: Json;
           created_at?: string;
         };
+        Relationships: [];
       };
 
       ai_provider_requests: {
@@ -792,6 +810,7 @@ export interface Database {
           cost_usd?: number;
           created_at?: string;
         };
+        Relationships: [];
       };
 
       audit_logs: {
@@ -828,7 +847,20 @@ export interface Database {
           ip_address?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 }
