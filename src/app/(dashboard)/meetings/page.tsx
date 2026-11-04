@@ -1,16 +1,161 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
+import { AudioUploader } from '@/components/meetings/AudioUploader';
+import { createClient } from '@/lib/supabase/client';
+
+interface MeetingItem {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  language: string;
+  duration_seconds: number | null;
+  created_at: string;
+  transcription_review_status?: string;
+}
 
 export default function MeetingsPage() {
+  const router = useRouter();
+  const [meetings, setMeetings] = useState<MeetingItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'completed' | 'processing'>('all');
   const [search, setSearch] = useState('');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
+
+  // Form state for new meeting
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [createdMeetingId, setCreatedMeetingId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        // Get user's primary organization
+        const { data: members } = await supabase
+          .from('organization_members')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .limit(1);
+
+        if (members && members.length > 0) {
+          const orgId = members[0].organization_id;
+          setCurrentOrgId(orgId);
+
+          // Fetch meetings
+          const { data: meetList } = await supabase
+            .from('meetings')
+            .select('*')
+            .eq('organization_id', orgId)
+            .order('created_at', { ascending: false });
+
+          if (meetList) {
+            setMeetings(meetList as MeetingItem[]);
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao carregar reuniões:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  const handleCreateMeetingRecord = async () => {
+    if (!newTitle.trim() || !currentOrgId) return;
+    setIsCreating(true);
+
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const { data, error } = await supabase
+        .from('meetings')
+        .insert({
+          organization_id: currentOrgId,
+          created_by: user!.id,
+          title: newTitle.trim(),
+          description: newDescription.trim() || null,
+          status: 'created',
+          language: 'pt',
+        })
+        .select()
+        .single();
+
+      if (error || !data) {
+        throw new Error(error?.message || 'Falha ao criar reunião');
+      }
+
+      setCreatedMeetingId(data.id);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleUploadSuccess = (result: { mediaAssetId: string; jobId: string }) => {
+    setUploadModalOpen(false);
+    if (createdMeetingId) {
+      router.push(`/meetings/${createdMeetingId}`);
+    }
+  };
+
+  const formatDuration = (seconds: number | null) => {
+    if (!seconds) return '--:--';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}m ${s.toString().padStart(2, '0')}s`;
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="success">Concluída</Badge>;
+      case 'processing':
+        return <Badge variant="warning">A Processar</Badge>;
+      case 'queued':
+        return <Badge variant="outline">Na Fila</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Falhou</Badge>;
+      default:
+        return <Badge variant="outline">Criada</Badge>;
+    }
+  };
+
+  // Filter meetings
+  const filteredMeetings = meetings.filter((m) => {
+    const matchesSearch =
+      m.title.toLowerCase().includes(search.toLowerCase()) ||
+      (m.description && m.description.toLowerCase().includes(search.toLowerCase()));
+
+    if (!matchesSearch) return false;
+
+    if (activeTab === 'completed') return m.status === 'completed';
+    if (activeTab === 'processing') return ['queued', 'processing'].includes(m.status);
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -27,7 +172,12 @@ export default function MeetingsPage() {
 
         <Button
           variant="brand"
-          onClick={() => setUploadModalOpen(true)}
+          onClick={() => {
+            setCreatedMeetingId(null);
+            setNewTitle('');
+            setNewDescription('');
+            setUploadModalOpen(true);
+          }}
           className="flex items-center gap-2"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +198,7 @@ export default function MeetingsPage() {
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            Todas (0)
+            Todas ({meetings.length})
           </button>
           <button
             onClick={() => setActiveTab('completed')}
@@ -58,7 +208,7 @@ export default function MeetingsPage() {
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            Concluídas (0)
+            Concluídas ({meetings.filter((m) => m.status === 'completed').length})
           </button>
           <button
             onClick={() => setActiveTab('processing')}
@@ -68,7 +218,7 @@ export default function MeetingsPage() {
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            A Processar (0)
+            A Processar ({meetings.filter((m) => ['queued', 'processing'].includes(m.status)).length})
           </button>
         </div>
 
@@ -83,35 +233,120 @@ export default function MeetingsPage() {
         </div>
       </div>
 
-      {/* Meetings List / Empty State */}
-      <Card className="border-dashed border-2 p-8">
-        <EmptyState
-          title="Nenhuma reunião encontrada"
-          description="Ainda não existem gravações processadas nesta organização. Faça o upload de um ficheiro de áudio para iniciar a transcrição inteligente."
-          actionLabel="Carregar Áudio de Reunião"
-          onAction={() => setUploadModalOpen(true)}
-        />
-      </Card>
+      {/* Meetings List / Grid */}
+      {filteredMeetings.length === 0 ? (
+        <Card className="border-dashed border-2 p-8">
+          <EmptyState
+            title="Nenhuma reunião encontrada"
+            description="Ainda não existem gravações processadas nesta organização. Faça o upload de um ficheiro de áudio para iniciar a transcrição inteligente."
+            actionLabel="Carregar Áudio de Reunião"
+            onAction={() => {
+              setCreatedMeetingId(null);
+              setNewTitle('');
+              setNewDescription('');
+              setUploadModalOpen(true);
+            }}
+          />
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredMeetings.map((meeting) => (
+            <Link
+              key={meeting.id}
+              href={`/meetings/${meeting.id}`}
+              className="block group"
+            >
+              <Card className="p-5 hover:border-indigo-400 dark:hover:border-indigo-600 transition-all hover:shadow-md space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
+                    {meeting.title}
+                  </h3>
+                  {getStatusBadge(meeting.status)}
+                </div>
 
-      {/* Info Modal */}
+                {meeting.description && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                    {meeting.description}
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-2.5">
+                  <span className="flex items-center gap-1 font-mono">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {formatDuration(meeting.duration_seconds)}
+                  </span>
+                  <span>
+                    {new Date(meeting.created_at).toLocaleDateString('pt-PT', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* New Meeting Modal with Audio Upload */}
       <Modal
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
-        title="Processamento de Áudio"
+        title={createdMeetingId ? 'Carregar Gravação de Áudio' : 'Nova Reunião'}
       >
-        <div className="space-y-4 text-xs text-slate-600 dark:text-slate-300">
-          <p>
-            O fluxo de upload em streaming e diarização com os motores Deepgram / Gladia estará disponível na <strong>Fase 3</strong>.
-          </p>
-          <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="font-semibold block mb-1">Formatos suportados na Fase 3:</span>
-            <span>MP3, WAV, M4A, AAC, MP4, WebM (até 500 MB por ficheiro).</span>
-          </div>
-          <div className="pt-2 flex justify-end">
-            <Button variant="outline" size="sm" onClick={() => setUploadModalOpen(false)}>
-              Fechar
-            </Button>
-          </div>
+        <div className="space-y-4 text-xs">
+          {!createdMeetingId ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Título da Reunião *
+                </label>
+                <Input
+                  id="meeting-title"
+                  placeholder="Ex: Alinhamento de Produto Q4"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Descrição (Opcional)
+                </label>
+                <textarea
+                  placeholder="Contexto, agenda ou notas breves..."
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" size="sm" onClick={() => setUploadModalOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCreateMeetingRecord}
+                  disabled={!newTitle.trim() || isCreating || !currentOrgId}
+                >
+                  {isCreating ? 'A criar...' : 'Continuar para Áudio'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <AudioUploader
+              meetingId={createdMeetingId}
+              organizationId={currentOrgId!}
+              onUploadSuccess={handleUploadSuccess}
+              onCancel={() => setUploadModalOpen(false)}
+            />
+          )}
         </div>
       </Modal>
     </div>

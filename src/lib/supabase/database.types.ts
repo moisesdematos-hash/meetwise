@@ -36,6 +36,7 @@ export type MinutesReviewStatus =
   | 'final_signed';
 export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type TranscriptionReviewStatus = 'draft' | 'in_review' | 'validated';
 export type LedgerStatus = 'reserved' | 'settled' | 'cancelled' | 'refunded';
 export type LedgerOperation =
   | 'transcription_minutes'
@@ -188,6 +189,9 @@ export interface Database {
           language: string;
           status: MeetingStatus;
           duration_seconds: number | null;
+          transcription_review_status: TranscriptionReviewStatus;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -201,6 +205,9 @@ export interface Database {
           language?: string;
           status?: MeetingStatus;
           duration_seconds?: number | null;
+          transcription_review_status?: TranscriptionReviewStatus;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -214,6 +221,9 @@ export interface Database {
           language?: string;
           status?: MeetingStatus;
           duration_seconds?: number | null;
+          transcription_review_status?: TranscriptionReviewStatus;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -354,7 +364,10 @@ export interface Database {
           text: string;
           words: Json; // array of { word, start, end, confidence }
           confidence: number;
+          is_edited: boolean;
+          original_text: string | null;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -366,7 +379,10 @@ export interface Database {
           text: string;
           words?: Json;
           confidence?: number;
+          is_edited?: boolean;
+          original_text?: string | null;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
@@ -378,7 +394,10 @@ export interface Database {
           text?: string;
           words?: Json;
           confidence?: number;
+          is_edited?: boolean;
+          original_text?: string | null;
           created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };

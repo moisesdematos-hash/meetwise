@@ -159,6 +159,9 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.create_organization_with_owner(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_organization_with_owner(TEXT, TEXT, TEXT, TEXT) TO authenticated, service_role;
+
 -- Attach tenant-tampering triggers to all child tables
 CREATE TRIGGER trg_tamper_meetings BEFORE UPDATE ON public.meetings FOR EACH ROW EXECUTE FUNCTION public.prevent_org_id_tamper();
 CREATE TRIGGER trg_tamper_participants BEFORE UPDATE ON public.meeting_participants FOR EACH ROW EXECUTE FUNCTION public.prevent_org_id_tamper();
@@ -214,8 +217,9 @@ CREATE POLICY "profiles_update_self" ON public.profiles
 CREATE POLICY "org_select_member" ON public.organizations
   FOR SELECT TO authenticated
   USING (
-    created_by = auth.uid() OR
     id IN (SELECT org_id FROM public.current_user_org_ids())
+    OR
+    (created_by = auth.uid() AND public.is_org_without_members(id))
   );
 
 CREATE POLICY "org_insert_auth" ON public.organizations
