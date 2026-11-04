@@ -5,9 +5,20 @@
 --              audit timestamps, and optimized indexes.
 -- ==============================================================================
 
--- Enable required extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- Enable extensions if available (gen_random_uuid is native in Postgres 13+)
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
 
 -- Function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION public.handle_updated_at()

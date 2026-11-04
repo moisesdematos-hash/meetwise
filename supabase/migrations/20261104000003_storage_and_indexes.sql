@@ -39,7 +39,13 @@ DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'storage' AND table_name = 'objects') THEN
 
+    -- Grant schema and table access to standard roles
+    GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
+    GRANT ALL ON ALL TABLES IN SCHEMA storage TO authenticated;
+    GRANT SELECT ON storage.buckets TO anon, authenticated;
+
     ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE storage.objects FORCE ROW LEVEL SECURITY;
 
     -- Drop existing policies if any to prevent conflicts
     DROP POLICY IF EXISTS "storage_select_org_member" ON storage.objects;

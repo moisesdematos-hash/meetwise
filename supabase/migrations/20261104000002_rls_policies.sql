@@ -6,6 +6,26 @@
 --              and attaches triggers to prevent tenant tampering and last-owner deletion.
 -- ==============================================================================
 
+-- 0. ENSURE STANDARD SUPABASE ROLES EXIST (Safe idempotency for any Postgres environment)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
+    CREATE ROLE anon NOLOGIN;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
+    CREATE ROLE authenticated NOLOGIN;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
+    CREATE ROLE service_role NOLOGIN;
+  END IF;
+END $$;
+
+-- Grant schema usage to standard roles
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+GRANT SELECT ON public.plans TO anon;
+
 -- 1. SECURITY DEFINER HELPER FUNCTION
 -- Returns the organization IDs and roles for the currently authenticated user
 CREATE OR REPLACE FUNCTION public.current_user_org_ids()
@@ -17,7 +37,7 @@ SET search_path = public, auth, pg_temp AS $$
   WHERE user_id = auth.uid() AND status = 'active';
 $$;
 
--- Restrict execute privilege to authenticated users
+-- Restrict execute privilege to authenticated users and service_role
 REVOKE ALL ON FUNCTION public.current_user_org_ids() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.current_user_org_ids() TO authenticated, service_role;
 
@@ -138,7 +158,10 @@ CREATE POLICY "org_delete_owner" ON public.organizations
 -- 3. ORGANIZATION MEMBERS
 CREATE POLICY "org_members_select" ON public.organization_members
   FOR SELECT TO authenticated
-  USING (organization_id IN (SELECT org_id FROM public.current_user_org_ids()));
+  USING (
+    user_id = auth.uid() OR
+    organization_id IN (SELECT org_id FROM public.current_user_org_ids())
+  );
 
 CREATE POLICY "org_members_insert_admin" ON public.organization_members
   FOR INSERT TO authenticated
@@ -284,7 +307,7 @@ CREATE POLICY "documents_write" ON public.meeting_documents
 
 -- 15. PLANS (Public read for authenticated users)
 CREATE POLICY "plans_select_all" ON public.plans
-  FOR SELECT TO authenticated
+  FOR SELECT TO authenticated, anon
   USING (is_active = true);
 
 -- 16. SUBSCRIPTIONS
