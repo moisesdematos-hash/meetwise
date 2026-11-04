@@ -14,9 +14,13 @@ export const taskSchema = z.object({
   start_time: z.number().nullable().optional(),
   end_time: z.number().nullable().optional(),
   quote: z.string().nullable().optional(),
+  task_nature: z.enum(['assigned', 'suggested', 'pending_confirmation']).default('assigned'),
 });
 
 export const updateTaskSchema = taskSchema.partial();
 
 export type TaskInput = z.infer<typeof taskSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
+
+export * from './service';
+

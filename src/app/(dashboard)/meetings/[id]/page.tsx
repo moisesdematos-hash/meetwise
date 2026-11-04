@@ -1,20 +1,28 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 import { AudioPlayer, type AudioPlayerRef } from '@/components/transcription/AudioPlayer';
 import { TranscriptEditor, type TranscriptSegmentItem } from '@/components/transcription/TranscriptEditor';
+import { MinutesEditor, type MinutesData, type SummaryData, type DecisionItem, type TaskItem, type AuditLogItem } from '@/components/minutes/MinutesEditor';
 import { createClient } from '@/lib/supabase/client';
+import type { MinutesReviewStatus, TemplateType } from '@/lib/supabase/database.types';
 
 export default function MeetingDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const meetingId = params?.id as string;
 
   const playerRef = useRef<AudioPlayerRef>(null);
+
+  const [mainTab, setMainTab] = useState<'transcription' | 'intelligence'>(
+    searchParams.get('tab') === 'minutes' ? 'intelligence' : 'transcription'
+  );
 
   const [loading, setLoading] = useState(true);
   const [meeting, setMeeting] = useState<any>(null);
@@ -24,6 +32,40 @@ export default function MeetingDetailPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isSimulated, setIsSimulated] = useState(false);
+
+  // Meeting Intelligence state
+  const [minutesLoading, setMinutesLoading] = useState(false);
+  const [minutes, setMinutes] = useState<MinutesData | null>(null);
+  const [summary, setSummary] = useState<SummaryData | null>(null);
+  const [decisions, setDecisions] = useState<DecisionItem[]>([]);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [auditHistory, setAuditHistory] = useState<AuditLogItem[]>([]);
+  const [userRole, setUserRole] = useState<string>('editor');
+
+  // Triggering analysis state
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('formal');
+  const [selectedProvider, setSelectedProvider] = useState<'mock' | 'gemini' | 'openai' | 'claude'>('mock');
+
+  const fetchMinutesData = useCallback(async (organizationId: string) => {
+    try {
+      setMinutesLoading(true);
+      const res = await fetch(`/api/meetings/${meetingId}/minutes?organizationId=${organizationId}`);
+      if (res.ok) {
+        const json = await res.json();
+        setMinutes(json.minutes);
+        setSummary(json.summary);
+        setDecisions(json.decisions || []);
+        setTasks(json.tasks || []);
+        setAuditHistory(json.auditHistory || []);
+        if (json.userRole) setUserRole(json.userRole);
+      }
+    } catch (e) {
+      console.error('Failed to load minutes:', e);
+    } finally {
+      setMinutesLoading(false);
+    }
+  }, [meetingId]);
 
   useEffect(() => {
     if (!meetingId) return;
@@ -108,13 +150,17 @@ export default function MeetingDetailPage() {
             setIsSimulated(true);
           }
 
-          // If still processing, poll every 3 seconds
           if (['queued', 'processing'].includes(jobData[0].status) && !pollInterval) {
             pollInterval = setInterval(fetchMeetingData, 3000);
           } else if (['completed', 'failed'].includes(jobData[0].status) && pollInterval) {
             clearInterval(pollInterval);
             pollInterval = null;
           }
+        }
+
+        // 6. Fetch intelligence/minutes
+        if (meetData.organization_id) {
+          await fetchMinutesData(meetData.organization_id);
         }
       } catch (err: any) {
         if (isMounted) {
@@ -133,7 +179,59 @@ export default function MeetingDetailPage() {
       isMounted = false;
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [meetingId]);
+  }, [meetingId, fetchMinutesData]);
+
+  const handleGenerateIntelligence = async () => {
+    if (!meeting?.organization_id) return;
+    try {
+      setIsAnalyzing(true);
+      const res = await fetch(`/api/meetings/${meetingId}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: meeting.organization_id,
+          templateType: selectedTemplate,
+          provider: selectedProvider,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao processar análise da reunião.');
+      }
+
+      await fetchMinutesData(meeting.organization_id);
+      setMainTab('intelligence');
+    } catch (err: any) {
+      alert(`Falha na extração de ata: ${err.message}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleUpdateMinutes = async (updates: {
+    targetStatus?: MinutesReviewStatus;
+    content?: string;
+    title?: string;
+  }) => {
+    if (!minutes || !meeting?.organization_id) return;
+    const res = await fetch(`/api/meetings/${meetingId}/minutes`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        organizationId: meeting.organization_id,
+        minutesId: minutes.id,
+        ...updates,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Erro ao atualizar ata.');
+    }
+
+    await fetchMinutesData(meeting.organization_id);
+  };
 
   const handleSeek = (seconds: number) => {
     playerRef.current?.seekTo(seconds);
@@ -152,7 +250,7 @@ export default function MeetingDetailPage() {
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center space-y-2">
           <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-slate-500">A carregar reunião e transcrição...</p>
+          <p className="text-xs text-slate-500">A carregar reunião e dados de inteligência...</p>
         </div>
       </div>
     );
@@ -202,7 +300,7 @@ export default function MeetingDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {meeting.status === 'completed' && <Badge variant="success">Transcrição Concluída</Badge>}
+          {meeting.status === 'completed' && <Badge variant="success">Transcrição Pronta</Badge>}
           {meeting.status === 'processing' && (
             <Badge variant="warning" className="animate-pulse">
               A Processar Áudio...
@@ -210,7 +308,41 @@ export default function MeetingDetailPage() {
           )}
           {meeting.status === 'queued' && <Badge variant="outline">Na Fila</Badge>}
           {meeting.status === 'failed' && <Badge variant="destructive">Processamento Falhou</Badge>}
+          {minutes && <Badge variant="purple">Ata Gerada ({minutes.review_status})</Badge>}
         </div>
+      </div>
+
+      {/* Main Tabs Switcher */}
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+        <button
+          type="button"
+          onClick={() => setMainTab('transcription')}
+          className={`pb-2 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            mainTab === 'transcription'
+              ? 'border-brand-blue text-brand-blue'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+          </svg>
+          <span>Transcrição & Áudio ({segments.length} trechos)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMainTab('intelligence')}
+          className={`pb-2 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            mainTab === 'intelligence'
+              ? 'border-brand-blue text-brand-blue'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span>Atas, Resumos & Decisões {minutes ? '✓' : ''}</span>
+        </button>
       </div>
 
       {isStillProcessing ? (
@@ -222,16 +354,14 @@ export default function MeetingDetailPage() {
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               O ficheiro está a ser convertido com reconhecimento de voz e diarização de oradores.
-              Esta página atualizar-se-á automaticamente assim que estiver concluído.
             </p>
           </div>
         </div>
-      ) : (
+      ) : mainTab === 'transcription' ? (
         /* Dual Pane Layout */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[600px]">
           {/* Left Pane: Media Player & Meeting Metadata */}
           <div className="lg:col-span-5 space-y-6">
-            {/* Audio Player */}
             <div className="sticky top-6 space-y-4">
               <AudioPlayer
                 ref={playerRef}
@@ -240,7 +370,6 @@ export default function MeetingDetailPage() {
                 onTimeUpdate={(t) => setCurrentTime(t)}
               />
 
-              {/* Meeting Details Card */}
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Detalhes da Reunião
@@ -328,6 +457,89 @@ export default function MeetingDetailPage() {
               isSimulated={isSimulated}
             />
           </div>
+        </div>
+      ) : (
+        /* Intelligence & Minutes Tab */
+        <div className="space-y-6">
+          {minutes ? (
+            <MinutesEditor
+              minutes={minutes}
+              summary={summary}
+              decisions={decisions}
+              tasks={tasks}
+              auditHistory={auditHistory}
+              userRole={userRole}
+              onUpdateMinutes={handleUpdateMinutes}
+              onSeekAudio={handleSeek}
+            />
+          ) : (
+            <Card className="p-8 max-w-2xl mx-auto text-center space-y-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+              <div className="w-12 h-12 rounded-2xl bg-brand-blue/10 text-brand-blue flex items-center justify-center mx-auto">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                </svg>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Gerar Ata & Inteligência da Reunião
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto">
+                  Transforme os {segments.length} trechos transcritos em atas profissionais, resumos executivos multinível, deliberações com citações verbatim e lista de tarefas atribuídas.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left max-w-lg mx-auto text-xs">
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Modelo da Ata:
+                  </label>
+                  <select
+                    value={selectedTemplate}
+                    onChange={(e) => setSelectedTemplate(e.target.value as TemplateType)}
+                    className="w-full p-2 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  >
+                    <option value="formal">Ata Formal (com mesa e deliberações)</option>
+                    <option value="executive">Ata Executiva (resumo e decisões)</option>
+                    <option value="simplified">Ata Simplificada (tópicos diretos)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Motor de Inteligência:
+                  </label>
+                  <select
+                    value={selectedProvider}
+                    onChange={(e) => setSelectedProvider(e.target.value as any)}
+                    className="w-full p-2 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  >
+                    <option value="mock">Determinístico Verificado (Local/Testes)</option>
+                    <option value="gemini">Google Gemini 2.0 Flash</option>
+                    <option value="openai">OpenAI GPT-4o</option>
+                    <option value="claude">Anthropic Claude 3.5 Sonnet</option>
+                  </select>
+                </div>
+              </div>
+
+              <Button
+                variant="brand"
+                size="md"
+                onClick={handleGenerateIntelligence}
+                disabled={isAnalyzing || segments.length === 0}
+                className="w-full sm:w-auto"
+              >
+                {isAnalyzing ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    A processar inteligência da reunião...
+                  </span>
+                ) : (
+                  'Gerar Ata, Resumo e Decisões com IA'
+                )}
+              </Button>
+            </Card>
+          )}
         </div>
       )}
     </div>

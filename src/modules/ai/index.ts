@@ -1,6 +1,6 @@
 import { sanitizeTranscriptForLLM } from '@/lib/security';
 
-export interface StructuredLLMPrompt<T> {
+export interface LegacyStructuredLLMPrompt<T> {
   systemPrompt: string;
   transcript: string;
   schemaDescription: string;
@@ -8,7 +8,7 @@ export interface StructuredLLMPrompt<T> {
 }
 
 export interface ILLMService {
-  generateStructured<T>(prompt: StructuredLLMPrompt<T>): Promise<T>;
+  generateStructured<T>(prompt: LegacyStructuredLLMPrompt<T>): Promise<T>;
   chatContextual(params: {
     systemPrompt: string;
     meetingTranscript: string;
@@ -30,3 +30,16 @@ You must strictly follow the principle of VERBATIM GROUNDING:
 export function prepareSafeMeetingPrompt(rawTranscript: string): string {
   return sanitizeTranscriptForLLM(rawTranscript);
 }
+
+// Phase 4 Exports
+export * from './types';
+export * from './prompt-injection';
+export * from './chunking';
+export * from './providers/factory';
+export * from './providers/mock';
+export * from './providers/openai';
+export * from './providers/gemini';
+export * from './providers/claude';
+export * from './evidence-validation';
+export * from './summary-service';
+export * from './analysis-service';

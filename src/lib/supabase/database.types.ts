@@ -25,9 +25,15 @@ export type JobStatus =
   | 'cancelled';
 export type DecisionClassification =
   | 'approved_decision'
+  | 'proposed_decision'
+  | 'discussed_decision'
+  | 'rejected_decision'
+  | 'deferred_decision'
+  | 'pending_validation'
   | 'proposal'
-  | 'rejected'
-  | 'pending_validation';
+  | 'rejected';
+export type TemplateType = 'formal' | 'executive' | 'simplified' | 'custom';
+export type TaskNature = 'assigned' | 'suggested' | 'pending_confirmation';
 export type MinutesReviewStatus =
   | 'draft_ai'
   | 'pending_review'
@@ -408,8 +414,15 @@ export interface Database {
           meeting_id: string;
           organization_id: string;
           executive_summary: string;
+          brief_summary: string | null;
+          detailed_summary: string | null;
           key_points: Json; // array of strings
           topics_discussed: Json; // array of { topic, summary }
+          next_steps: Json;
+          risks: Json;
+          generated_by_model: string | null;
+          prompt_tokens: number;
+          completion_tokens: number;
           version: number;
           created_at: string;
           updated_at: string;
@@ -419,8 +432,15 @@ export interface Database {
           meeting_id: string;
           organization_id: string;
           executive_summary: string;
+          brief_summary?: string | null;
+          detailed_summary?: string | null;
           key_points?: Json;
           topics_discussed?: Json;
+          next_steps?: Json;
+          risks?: Json;
+          generated_by_model?: string | null;
+          prompt_tokens?: number;
+          completion_tokens?: number;
           version?: number;
           created_at?: string;
           updated_at?: string;
@@ -430,8 +450,15 @@ export interface Database {
           meeting_id?: string;
           organization_id?: string;
           executive_summary?: string;
+          brief_summary?: string | null;
+          detailed_summary?: string | null;
           key_points?: Json;
           topics_discussed?: Json;
+          next_steps?: Json;
+          risks?: Json;
+          generated_by_model?: string | null;
+          prompt_tokens?: number;
+          completion_tokens?: number;
           version?: number;
           created_at?: string;
           updated_at?: string;
@@ -446,6 +473,11 @@ export interface Database {
           organization_id: string;
           title: string;
           content: string; // Markdown / Structured text
+          template_type: TemplateType;
+          template_id: string | null;
+          sections: Json;
+          language: string;
+          metadata: Json;
           review_status: MinutesReviewStatus;
           reviewed_by: string | null;
           reviewed_at: string | null;
@@ -459,6 +491,11 @@ export interface Database {
           organization_id: string;
           title: string;
           content: string;
+          template_type?: TemplateType;
+          template_id?: string | null;
+          sections?: Json;
+          language?: string;
+          metadata?: Json;
           review_status?: MinutesReviewStatus;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
@@ -472,6 +509,11 @@ export interface Database {
           organization_id?: string;
           title?: string;
           content?: string;
+          template_type?: TemplateType;
+          template_id?: string | null;
+          sections?: Json;
+          language?: string;
+          metadata?: Json;
           review_status?: MinutesReviewStatus;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
@@ -494,6 +536,11 @@ export interface Database {
           decision_text: string;
           classification: DecisionClassification;
           confidence_score: number;
+          rationale: string | null;
+          responsible_name: string | null;
+          status_evidence: string | null;
+          verified_by: string | null;
+          verified_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -508,6 +555,11 @@ export interface Database {
           decision_text: string;
           classification?: DecisionClassification;
           confidence_score?: number;
+          rationale?: string | null;
+          responsible_name?: string | null;
+          status_evidence?: string | null;
+          verified_by?: string | null;
+          verified_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -522,6 +574,11 @@ export interface Database {
           decision_text?: string;
           classification?: DecisionClassification;
           confidence_score?: number;
+          rationale?: string | null;
+          responsible_name?: string | null;
+          status_evidence?: string | null;
+          verified_by?: string | null;
+          verified_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -544,6 +601,9 @@ export interface Database {
           due_date: string | null;
           priority: TaskPriority;
           status: TaskStatus;
+          task_nature: TaskNature;
+          verified_by: string | null;
+          verified_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -562,6 +622,9 @@ export interface Database {
           due_date?: string | null;
           priority?: TaskPriority;
           status?: TaskStatus;
+          task_nature?: TaskNature;
+          verified_by?: string | null;
+          verified_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -580,6 +643,55 @@ export interface Database {
           due_date?: string | null;
           priority?: TaskPriority;
           status?: TaskStatus;
+          task_nature?: TaskNature;
+          verified_by?: string | null;
+          verified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      organization_templates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          template_type: TemplateType;
+          sections: Json;
+          terminology: Json;
+          language: string;
+          formatting_rules: Json;
+          is_default: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          template_type?: TemplateType;
+          sections?: Json;
+          terminology?: Json;
+          language?: string;
+          formatting_rules?: Json;
+          is_default?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          template_type?: TemplateType;
+          sections?: Json;
+          terminology?: Json;
+          language?: string;
+          formatting_rules?: Json;
+          is_default?: boolean;
+          created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -788,7 +900,7 @@ export interface Database {
           id: string;
           organization_id: string;
           meeting_id: string | null;
-          provider: 'deepgram' | 'gladia' | 'gemini' | 'claude' | 'openai';
+          provider: 'deepgram' | 'gladia' | 'gemini' | 'claude' | 'openai' | 'mock';
           endpoint: string;
           request_id: string | null;
           status_code: number;
@@ -803,7 +915,7 @@ export interface Database {
           id?: string;
           organization_id: string;
           meeting_id?: string | null;
-          provider: 'deepgram' | 'gladia' | 'gemini' | 'claude' | 'openai';
+          provider: 'deepgram' | 'gladia' | 'gemini' | 'claude' | 'openai' | 'mock';
           endpoint: string;
           request_id?: string | null;
           status_code: number;
@@ -818,7 +930,7 @@ export interface Database {
           id?: string;
           organization_id?: string;
           meeting_id?: string | null;
-          provider?: 'deepgram' | 'gladia' | 'gemini' | 'claude' | 'openai';
+          provider?: 'deepgram' | 'gladia' | 'gemini' | 'claude' | 'openai' | 'mock';
           endpoint?: string;
           request_id?: string | null;
           status_code?: number;

@@ -11,11 +11,15 @@ export const decisionSchema = z.object({
   decision_text: z.string().min(3, 'Decision statement is required'),
   classification: z.enum([
     'approved_decision',
+    'proposed_decision',
+    'discussed_decision',
+    'rejected_decision',
+    'deferred_decision',
+    'pending_validation',
     'proposal',
     'rejected',
-    'pending_validation',
   ]),
-  confidence_score: z.number().min(0).max(1).default(1.0),
+  confidence_score: z.number().min(0).max(1).default(1.0).optional(),
 });
 
 export type DecisionInput = z.infer<typeof decisionSchema>;
@@ -68,3 +72,6 @@ export function assertValidDecision(decision: DecisionInput, transcriptText: str
     }
   }
 }
+
+export * from './service';
+
