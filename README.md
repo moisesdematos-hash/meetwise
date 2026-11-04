@@ -1,0 +1,101 @@
+# MEETWISE AI — Plataforma SaaS de Inteligência Artificial para Reuniões
+
+O **MEETWISE AI** é uma plataforma SaaS independente, multi-utilizador e multi-empresa desenhada para transformar gravações de reuniões (áudio/vídeo) em atas executivas homologáveis, resumos estratégicos, decisões fundamentadas e tarefas com prazos e responsáveis.
+
+---
+
+## 🚀 Pilares Técnicos Fundamentais
+
+- **Independência Arquitetural Estrita:** Infraestrutura, banco de dados e credenciais 100% isoladas.
+- **Fidelidade e Anti-Alucinação (*Verbatim Grounding*):** Toda deliberação e tarefa exige citação literal exata (*verbatim quote*) e timestamps de suporte da transcrição original. Itens ambíguos são sinalizados como `pending_validation`.
+- **Isolamento Multi-Tenant via PostgreSQL RLS:** Isolamento garantido ao nível do motor relacional através de Row Level Security em todas as 20 tabelas com dados de clientes. Gatilhos de integridade impedem adulteração de `organization_id` e remoção do último proprietário.
+- **Motor de Transcrição Otimizado para Português:** Camada agnóstica de provedores (`ITranscriptionService`), com Deepgram Nova-3 (Batch) como primário e Gladia Solaria como secundário/fallback, calibrados para variantes de Portugal, Angola e Brasil.
+- **Auditoria de Quotas & Livro de Consumo (`usage_ledger`):** Registo atómico e idempotente de consumo de minutos para evitar cobranças duplicadas em repetições técnicas.
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+- **Frontend & Backend API:** Next.js (App Router, Server Components & Server Actions)
+- **Linguagem & Tipagem:** TypeScript em modo estrito (`strict: true`)
+- **Estilos:** Tailwind CSS
+- **Validação de Esquemas:** Zod
+- **Banco de Dados & Autenticação:** Supabase PostgreSQL com RLS e Supabase Auth
+- **Armazenamento:** Supabase Storage (Buckets Privados com Presigned URLs)
+- **Testes Automatizados:** Vitest
+- **Linting & Code Quality:** ESLint
+
+---
+
+## 📁 Estrutura de Diretórios Modular
+
+```text
+meetwise-ai/
+├── docs/                     # Documentação de arquitetura, segurança e schemas
+├── src/
+│   ├── app/                  # Rotas Next.js (App Router)
+│   ├── config/               # Validação Zod de variáveis de ambiente
+│   ├── lib/
+│   │   ├── errors/           # Erros centralizados (AppError) e respostas padronizadas
+│   │   ├── logger/           # Logger estruturado com IDs de correlação e sanitização
+│   │   ├── security/         # Assinaturas HMAC, proteção anti-prompt injection e rate limiting
+│   │   └── supabase/         # Clientes de browser, servidor, admin e tipos do banco
+│   └── modules/              # Domínios de negócio isolados
+│       ├── auth/             # Matriz RBAC e regras de privilégios
+│       ├── organizations/    # Gestão de empresas, membros e proteção do último owner
+│       ├── meetings/         # Ciclo de vida e máquina de estados de reuniões
+│       ├── media/            # Validação MIME, limites (500MB) e caminhos isolados
+│       ├── transcription/    # Contrato ITranscriptionService e adaptadores
+│       ├── ai/               # Contrato ILLMService e defesas anti-injeção
+│       ├── minutes/          # Modelos de ata e workflow de revisão humana
+│       ├── decisions/        # Validador heurístico de citação verbatim
+│       ├── tasks/            # Gestão e atribuição de ações com prazos
+│       ├── billing/          # Livro de consumo idempotente e planos
+│       ├── administration/   # Auditoria técnica e métricas do sistema
+│       └── audit/            # Registo imutável de eventos de auditoria
+└── supabase/
+    └── migrations/           # Migrações SQL versionadas (Tabelas, RLS e Storage)
+```
+
+---
+
+## ⚙️ Instalação e Execução Local
+
+### Pré-requisitos
+- Node.js >= 20
+- pnpm >= 9
+
+### Passo a Passo
+1. Clone o repositório e instale as dependências:
+   ```bash
+   pnpm install
+   ```
+2. Configure as variáveis de ambiente:
+   ```bash
+   cp .env.example .env.local
+   ```
+3. Execute a verificação de tipos e suite de testes:
+   ```bash
+   pnpm run typecheck
+   pnpm test
+   ```
+4. Execute o linter e o build de produção:
+   ```bash
+   pnpm run lint
+   pnpm run build
+   ```
+5. Inicie o servidor em modo de desenvolvimento:
+   ```bash
+   pnpm dev
+   ```
+
+---
+
+## 📚 Documentação Técnica Adicional
+Consulte a pasta [`docs/`](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs) para guias aprofundados sobre:
+- [Arquitetura Geral](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/architecture.md)
+- [Esquema do Banco de Dados](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/database-schema.md)
+- [Modelo de Segurança e RBAC](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/security-model.md)
+- [Políticas RLS](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/rls-policies.md)
+- [Configuração de Ambientes](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/environment-setup.md)
+- [Estratégia de Testes](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/testing.md)
