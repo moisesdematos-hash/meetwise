@@ -41,6 +41,19 @@ $$;
 REVOKE ALL ON FUNCTION public.current_user_org_ids() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.current_user_org_ids() TO authenticated, service_role;
 
+-- 1.1 HELPER: CHECK IF ORGANIZATION HAS NO MEMBERS (Avoids RLS circular recursion)
+CREATE OR REPLACE FUNCTION public.is_org_without_members(p_org_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public, auth, pg_temp
+AS $$
+  SELECT NOT EXISTS (SELECT 1 FROM public.organization_members WHERE organization_id = p_org_id);
+$$;
+
+REVOKE ALL ON FUNCTION public.is_org_without_members(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_org_without_members(UUID) TO authenticated, service_role;
+
 -- 2. TRIGGER: PREVENT MODIFICATION OF organization_id (Tenant Tampering)
 CREATE OR REPLACE FUNCTION public.prevent_org_id_tamper()
 RETURNS TRIGGER 
@@ -85,6 +98,66 @@ $$;
 CREATE TRIGGER trg_protect_last_owner
 BEFORE UPDATE OR DELETE ON public.organization_members
 FOR EACH ROW EXECUTE FUNCTION public.protect_last_owner();
+
+-- 4. ATOMIC ONBOARDING RPC
+CREATE OR REPLACE FUNCTION public.create_organization_with_owner(
+  p_name TEXT,
+  p_slug TEXT,
+  p_language TEXT DEFAULT 'pt',
+  p_full_name TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, pg_temp
+AS $$
+DECLARE
+  v_user_id UUID;
+  v_org_id UUID;
+  v_result JSONB;
+BEGIN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'UNAUTHORIZED: Authentication required to create organization';
+  END IF;
+
+  IF trim(p_name) IS NULL OR length(trim(p_name)) < 2 THEN
+    RAISE EXCEPTION 'VALIDATION_ERROR: Organization name must be at least 2 characters';
+  END IF;
+
+  IF trim(p_slug) IS NULL OR length(trim(p_slug)) < 2 THEN
+    RAISE EXCEPTION 'VALIDATION_ERROR: Organization slug must be at least 2 characters';
+  END IF;
+
+  -- 1. Ensure profile exists / updated
+  IF p_full_name IS NOT NULL AND trim(p_full_name) <> '' THEN
+    UPDATE public.profiles
+    SET full_name = trim(p_full_name),
+        locale = COALESCE(p_language, 'pt'),
+        updated_at = NOW()
+    WHERE id = v_user_id;
+  END IF;
+
+  -- 2. Insert organization
+  INSERT INTO public.organizations (name, slug, created_by, default_language)
+  VALUES (trim(p_name), trim(p_slug), v_user_id, COALESCE(p_language, 'pt'))
+  RETURNING id INTO v_org_id;
+
+  -- 3. Insert owner membership atomically
+  INSERT INTO public.organization_members (organization_id, user_id, role, status)
+  VALUES (v_org_id, v_user_id, 'owner', 'active');
+
+  SELECT jsonb_build_object(
+    'id', v_org_id,
+    'name', trim(p_name),
+    'slug', trim(p_slug),
+    'default_language', COALESCE(p_language, 'pt'),
+    'role', 'owner'
+  ) INTO v_result;
+
+  RETURN v_result;
+END;
+$$;
 
 -- Attach tenant-tampering triggers to all child tables
 CREATE TRIGGER trg_tamper_meetings BEFORE UPDATE ON public.meetings FOR EACH ROW EXECUTE FUNCTION public.prevent_org_id_tamper();
@@ -140,7 +213,10 @@ CREATE POLICY "profiles_update_self" ON public.profiles
 -- 2. ORGANIZATIONS
 CREATE POLICY "org_select_member" ON public.organizations
   FOR SELECT TO authenticated
-  USING (id IN (SELECT org_id FROM public.current_user_org_ids()));
+  USING (
+    created_by = auth.uid() OR
+    id IN (SELECT org_id FROM public.current_user_org_ids())
+  );
 
 CREATE POLICY "org_insert_auth" ON public.organizations
   FOR INSERT TO authenticated
@@ -168,10 +244,8 @@ CREATE POLICY "org_members_insert_admin" ON public.organization_members
   WITH CHECK (
     organization_id IN (SELECT org_id FROM public.current_user_org_ids() WHERE role IN ('owner', 'admin'))
     OR
-    -- Allow the organization creator to add themselves as first owner
-    (user_id = auth.uid() AND role = 'owner' AND NOT EXISTS (
-      SELECT 1 FROM public.organization_members om WHERE om.organization_id = organization_members.organization_id
-    ))
+    -- Allow the organization creator to add themselves as first owner (using SECURITY DEFINER to prevent recursion)
+    (user_id = auth.uid() AND role = 'owner' AND public.is_org_without_members(organization_id))
   );
 
 CREATE POLICY "org_members_update_admin" ON public.organization_members

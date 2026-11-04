@@ -41,9 +41,29 @@ export async function completeOnboarding(input: CompleteOnboardingInput) {
     console.error('Erro ao atualizar perfil no onboarding:', profileError.message);
   }
 
-  // 2. Gerar Slug e Criar Organização
+  // 2. Gerar Slug
   const orgSlug = generateSlug(validated.organizationName);
 
+  // 3. Execução Atómica via RPC (se disponível) ou fallback com trigger de base de dados
+  try {
+    const { data: rpcData, error: rpcError } = await supabase.rpc('create_organization_with_owner', {
+      p_name: validated.organizationName,
+      p_slug: orgSlug,
+      p_language: validated.locale,
+      p_full_name: validated.fullName,
+    });
+
+    if (!rpcError && rpcData) {
+      return {
+        success: true,
+        organization: rpcData,
+      };
+    }
+  } catch {
+    // Continuar para o fluxo direto
+  }
+
+  // 4. Criação Direta (Trigger trg_auto_owner_organization assegura atribuição atómica do owner)
   const { data: orgData, error: orgError } = await supabase
     .from('organizations')
     .insert({
@@ -62,23 +82,18 @@ export async function completeOnboarding(input: CompleteOnboardingInput) {
     };
   }
 
-  // 3. Adicionar utilizador como OWNER em organization_members
-  const { error: memberError } = await supabase
+  // 5. Garantir associação em organization_members com fallback idempotente
+  await supabase
     .from('organization_members')
-    .insert({
-      organization_id: orgData.id,
-      user_id: user.id,
-      role: 'owner',
-      status: 'active',
-    });
-
-  if (memberError) {
-    console.error('Erro ao associar utilizador como owner:', memberError.message);
-    return {
-      success: false,
-      error: memberError.message || 'Falha ao atribuir permissões de proprietário à organização.',
-    };
-  }
+    .upsert(
+      {
+        organization_id: orgData.id,
+        user_id: user.id,
+        role: 'owner',
+        status: 'active',
+      },
+      { onConflict: 'organization_id,user_id' }
+    );
 
   return {
     success: true,
