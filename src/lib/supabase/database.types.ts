@@ -56,6 +56,39 @@ export type LedgerOperation =
   | 'storage_gb'
   | 'manual_credit';
 
+export type PlanCode = 'free' | 'starter' | 'pro' | 'business' | 'enterprise';
+export type BillingCurrency = 'AOA' | 'USD' | 'EUR' | 'BRL';
+export type BillingInterval = 'monthly' | 'annual';
+export type SubscriptionStatus =
+  | 'trialing'
+  | 'active'
+  | 'past_due'
+  | 'grace_period'
+  | 'suspended'
+  | 'cancelled'
+  | 'canceled'
+  | 'unpaid'
+  | 'expired';
+export type InvoiceStatus = 'draft' | 'issued' | 'paid' | 'void' | 'refunded';
+export type LedgerAccountType =
+  | 'accounts_receivable'
+  | 'revenue'
+  | 'cash'
+  | 'deferred_revenue'
+  | 'refund_expense'
+  | 'bad_debt'
+  | 'ai_cost_expense';
+export type LedgerEntryType = 'debit' | 'credit';
+export type LedgerReferenceType =
+  | 'invoice'
+  | 'payment'
+  | 'refund'
+  | 'ai_usage'
+  | 'manual_adjustment';
+export type RefundStatus = 'pending' | 'approved' | 'processed' | 'failed' | 'rejected';
+export type PlatformAdminRole = 'super_admin' | 'billing_admin' | 'support_admin';
+export type CheckoutSessionStatus = 'open' | 'completed' | 'expired' | 'failed';
+
 export interface Database {
   public: {
     Tables: {
@@ -979,7 +1012,7 @@ export interface Database {
         Row: {
           id: string;
           name: string;
-          code: 'free' | 'pro' | 'business' | 'enterprise';
+          code: PlanCode;
           monthly_minutes_included: number;
           seats_included: number;
           price_cents_usd: number;
@@ -990,7 +1023,7 @@ export interface Database {
         Insert: {
           id?: string;
           name: string;
-          code: 'free' | 'pro' | 'business' | 'enterprise';
+          code: PlanCode;
           monthly_minutes_included: number;
           seats_included: number;
           price_cents_usd: number;
@@ -1001,7 +1034,7 @@ export interface Database {
         Update: {
           id?: string;
           name?: string;
-          code?: 'free' | 'pro' | 'business' | 'enterprise';
+          code?: PlanCode;
           monthly_minutes_included?: number;
           seats_included?: number;
           price_cents_usd?: number;
@@ -1012,15 +1045,68 @@ export interface Database {
         Relationships: [];
       };
 
+      plan_prices: {
+        Row: {
+          id: string;
+          plan_id: string;
+          currency: BillingCurrency;
+          amount_cents: number;
+          billing_interval: BillingInterval;
+          version: number;
+          is_active: boolean;
+          effective_from: string;
+          effective_until: string | null;
+          external_price_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          currency: BillingCurrency;
+          amount_cents: number;
+          billing_interval: BillingInterval;
+          version?: number;
+          is_active?: boolean;
+          effective_from?: string;
+          effective_until?: string | null;
+          external_price_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          plan_id?: string;
+          currency?: BillingCurrency;
+          amount_cents?: number;
+          billing_interval?: BillingInterval;
+          version?: number;
+          is_active?: boolean;
+          effective_from?: string;
+          effective_until?: string | null;
+          external_price_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
       subscriptions: {
         Row: {
           id: string;
           organization_id: string;
           plan_id: string;
-          status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid';
+          plan_price_id: string | null;
+          status: SubscriptionStatus;
+          currency: BillingCurrency;
+          billing_interval: BillingInterval;
           current_period_start: string;
           current_period_end: string;
           cancel_at_period_end: boolean;
+          grace_period_ends_at: string | null;
+          suspended_at: string | null;
+          suspended_reason: string | null;
+          cancelled_at: string | null;
+          cancellation_reason: string | null;
+          external_subscription_id: string | null;
+          provider: string;
           created_at: string;
           updated_at: string;
         };
@@ -1028,10 +1114,20 @@ export interface Database {
           id?: string;
           organization_id: string;
           plan_id: string;
-          status?: 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid';
+          plan_price_id?: string | null;
+          status?: SubscriptionStatus;
+          currency?: BillingCurrency;
+          billing_interval?: BillingInterval;
           current_period_start: string;
           current_period_end: string;
           cancel_at_period_end?: boolean;
+          grace_period_ends_at?: string | null;
+          suspended_at?: string | null;
+          suspended_reason?: string | null;
+          cancelled_at?: string | null;
+          cancellation_reason?: string | null;
+          external_subscription_id?: string | null;
+          provider?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -1039,10 +1135,20 @@ export interface Database {
           id?: string;
           organization_id?: string;
           plan_id?: string;
-          status?: 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid';
+          plan_price_id?: string | null;
+          status?: SubscriptionStatus;
+          currency?: BillingCurrency;
+          billing_interval?: BillingInterval;
           current_period_start?: string;
           current_period_end?: string;
           cancel_at_period_end?: boolean;
+          grace_period_ends_at?: string | null;
+          suspended_at?: string | null;
+          suspended_reason?: string | null;
+          cancelled_at?: string | null;
+          cancellation_reason?: string | null;
+          external_subscription_id?: string | null;
+          provider?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -1216,6 +1322,322 @@ export interface Database {
           resource_id?: string | null;
           metadata?: Json;
           ip_address?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      checkout_sessions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          plan_id: string;
+          plan_price_id: string;
+          provider: 'stripe' | 'mock' | 'multicaixa' | 'paypal';
+          currency: BillingCurrency;
+          amount_cents: number;
+          billing_interval: BillingInterval;
+          status: CheckoutSessionStatus;
+          session_reference: string;
+          provider_checkout_id: string | null;
+          provider_url: string | null;
+          success_url: string;
+          cancel_url: string;
+          expires_at: string;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id: string;
+          plan_id: string;
+          plan_price_id: string;
+          provider: 'stripe' | 'mock' | 'multicaixa' | 'paypal';
+          currency: BillingCurrency;
+          amount_cents: number;
+          billing_interval: BillingInterval;
+          status?: CheckoutSessionStatus;
+          session_reference: string;
+          provider_checkout_id?: string | null;
+          provider_url?: string | null;
+          success_url: string;
+          cancel_url: string;
+          expires_at: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          user_id?: string;
+          plan_id?: string;
+          plan_price_id?: string;
+          provider?: 'stripe' | 'mock' | 'multicaixa' | 'paypal';
+          currency?: BillingCurrency;
+          amount_cents?: number;
+          billing_interval?: BillingInterval;
+          status?: CheckoutSessionStatus;
+          session_reference?: string;
+          provider_checkout_id?: string | null;
+          provider_url?: string | null;
+          success_url?: string;
+          cancel_url?: string;
+          expires_at?: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      invoices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          subscription_id: string | null;
+          invoice_number: string;
+          currency: BillingCurrency;
+          subtotal_cents: number;
+          tax_cents: number;
+          total_cents: number;
+          status: InvoiceStatus;
+          due_date: string;
+          paid_at: string | null;
+          payment_reference: string | null;
+          billing_details: Json;
+          pdf_url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          subscription_id?: string | null;
+          invoice_number: string;
+          currency: BillingCurrency;
+          subtotal_cents: number;
+          tax_cents?: number;
+          total_cents: number;
+          status?: InvoiceStatus;
+          due_date: string;
+          paid_at?: string | null;
+          payment_reference?: string | null;
+          billing_details?: Json;
+          pdf_url?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          subscription_id?: string | null;
+          invoice_number?: string;
+          currency?: BillingCurrency;
+          subtotal_cents?: number;
+          tax_cents?: number;
+          total_cents?: number;
+          status?: InvoiceStatus;
+          due_date?: string;
+          paid_at?: string | null;
+          payment_reference?: string | null;
+          billing_details?: Json;
+          pdf_url?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      invoice_lines: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          description: string;
+          quantity: number;
+          unit_price_cents: number;
+          total_price_cents: number;
+          period_start: string | null;
+          period_end: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          description: string;
+          quantity?: number;
+          unit_price_cents: number;
+          total_price_cents: number;
+          period_start?: string | null;
+          period_end?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          invoice_id?: string;
+          description?: string;
+          quantity?: number;
+          unit_price_cents?: number;
+          total_price_cents?: number;
+          period_start?: string | null;
+          period_end?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      financial_ledger_entries: {
+        Row: {
+          id: string;
+          transaction_id: string;
+          organization_id: string;
+          account_type: LedgerAccountType;
+          entry_type: LedgerEntryType;
+          amount_cents: number;
+          currency: BillingCurrency;
+          reference_type: LedgerReferenceType;
+          reference_id: string;
+          description: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          transaction_id: string;
+          organization_id: string;
+          account_type: LedgerAccountType;
+          entry_type: LedgerEntryType;
+          amount_cents: number;
+          currency: BillingCurrency;
+          reference_type: LedgerReferenceType;
+          reference_id: string;
+          description: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          transaction_id?: string;
+          organization_id?: string;
+          account_type?: LedgerAccountType;
+          entry_type?: LedgerEntryType;
+          amount_cents?: number;
+          currency?: BillingCurrency;
+          reference_type?: LedgerReferenceType;
+          reference_id?: string;
+          description?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      refunds: {
+        Row: {
+          id: string;
+          organization_id: string;
+          invoice_id: string | null;
+          payment_event_id: string | null;
+          amount_cents: number;
+          currency: BillingCurrency;
+          reason: string;
+          status: RefundStatus;
+          external_refund_id: string | null;
+          processed_by: string | null;
+          metadata: Json;
+          created_at: string;
+          processed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          invoice_id?: string | null;
+          payment_event_id?: string | null;
+          amount_cents: number;
+          currency: BillingCurrency;
+          reason: string;
+          status?: RefundStatus;
+          external_refund_id?: string | null;
+          processed_by?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          processed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          invoice_id?: string | null;
+          payment_event_id?: string | null;
+          amount_cents?: number;
+          currency?: BillingCurrency;
+          reason?: string;
+          status?: RefundStatus;
+          external_refund_id?: string | null;
+          processed_by?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          processed_at?: string | null;
+        };
+        Relationships: [];
+      };
+
+      platform_admins: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: PlatformAdminRole;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: PlatformAdminRole;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          role?: PlatformAdminRole;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      organization_quota_reserves: {
+        Row: {
+          id: string;
+          organization_id: string;
+          operation: string;
+          reserved_quantity: number;
+          unit: string;
+          idempotency_key: string;
+          status: 'active' | 'settled' | 'released';
+          expires_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          operation: string;
+          reserved_quantity: number;
+          unit?: string;
+          idempotency_key: string;
+          status?: 'active' | 'settled' | 'released';
+          expires_at: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          operation?: string;
+          reserved_quantity?: number;
+          unit?: string;
+          idempotency_key?: string;
+          status?: 'active' | 'settled' | 'released';
+          expires_at?: string;
           created_at?: string;
         };
         Relationships: [];

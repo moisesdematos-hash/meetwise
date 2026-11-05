@@ -118,9 +118,11 @@ export default function SettingsPage() {
               <span className="font-bold text-slate-900 dark:text-white block">Evoluir para o Plano Pro (19 €/mês)</span>
               <span className="text-slate-500 text-[11px]">Obtenha 600 minutos/mês (10h), 3 membros e exportação DOCX/PDF.</span>
             </div>
-            <Button variant="brand" size="sm" className="shrink-0">
-              Upgrade de Plano
-            </Button>
+            <a href="/settings/billing/plans">
+              <Button variant="brand" size="sm" className="shrink-0">
+                Upgrade de Plano
+              </Button>
+            </a>
           </div>
         </CardContent>
       </Card>

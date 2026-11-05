@@ -15,8 +15,14 @@ O **MEETWISE AI** é uma plataforma SaaS independente, multi-utilizador e multi-
 - **Workflow de Revisão Humana e Auditoria Imutável:** Máquina de estados de ata (`draft_ai` → `pending_review` → `validated_human` / `rejected_human` → `final_signed`), versionamento sequencial com diff e trilha completa em `audit_logs`.
 - **Exportação Profissional Cross-Format (DOCX, PDF, TXT):** Geração determinística baseada no Modelo Canónico (`CanonicalMeetingDocument`), com OpenXML nativo (`docx`), PDFs vectoriais A4 com paginação em 2 passos ("Página X de Y" via `pdfkit`) e exportação UTF-8 formatada a 80 colunas.
 - **Colaboração Controlada, OCC e Partilha Criptográfica SHA-256:** Numeração atómica sequencial por organização (`public.get_next_document_number`), controlo de concorrência otimista (prevenção de conflitos via HTTP 409), comentários com ciclo de vida e links de partilha pública gerados com tokens de 256 bits guardados sob hash SHA-256.
-- **Auditoria de Quotas & Livro de Consumo (`usage_ledger`):** Registo atómico e idempotente de consumo de minutos e tokens para evitar cobranças duplicadas em repetições técnicas.
-- **Suíte Abrangente de Testes Automatizados:** 187 testes automatizados (100% PASS) cobrindo unitários, integração de IA, validação heurística, RLS multi-tenant no PostgreSQL real (PGlite), geração e paridade de documentos DOCX/PDF/TXT e segurança.
+- **Monetização Multi-Moeda & Catálogo Comercial SaaS:** 5 planos comerciais (`free`, `starter`, `pro`, `business`, `enterprise`) com preços versionados por moeda (`AOA`, `USD`, `EUR`, `BRL`) em unidades menores inteiras (*minor units*).
+- **Provedores de Pagamento Desacoplados & Mercado Angolano:** Adaptador agnóstico com suporte para `MockPaymentProvider`, `StripePaymentProvider` (mercados globais) e `MulticaixaProxyPaymentProvider` (EMIS / Multicaixa Express / GPO / BAI Directo para Kwanza/AOA).
+- **Checkout Seguro & Webhooks Idempotentes:** Resolução de preço exclusiva no servidor, expiração de 30 minutos, validação HMAC SHA-256 de *raw body* e prevenção de ataques de repetição em `payment_events`.
+- **Livro-Razão Financeiro de Partidas Dobradas:** Separação entre uso operacional e livro financeiro (`financial_ledger_entries`) com invariante estrita $\sum \text{Débitos} == \sum \text{Créditos}$ e gatilhos de imutabilidade.
+- **Reservas Atómicas de Quotas (Two-Phase):** Prevenção de concorrência com reservas em `organization_quota_reserves`, liquidação pós-sucesso e libertação automática em falhas.
+- **FinOps & Rastreio de Custos de IA:** Telemetria de chamadas STT/LLM em `ai_provider_requests`, cálculo em tempo real de margens brutas por organização e alertas de margem baixa (<60%).
+- **Painel Administrativo Central & Auditoria Mandatória:** Suite completa em `/admin/*` exigindo justificação com no mínimo 10 caracteres para qualquer intervenção em contas de clientes gravada em `public.audit_logs`.
+- **Suíte Abrangente de Testes Automatizados:** 220 testes automatizados (100% PASS) em 42 ficheiros cobrindo unitários, integração de IA, validação heurística, RLS multi-tenant no PostgreSQL real (PGlite), geração e paridade de documentos DOCX/PDF/TXT, partidas dobradas, webhooks e segurança de pagamentos.
 
 ---
 
@@ -137,3 +143,19 @@ Consulte a pasta [`docs/`](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs) par
 - [Auditoria de Segurança Técnica Fase 5](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-5-security-audit.md)
 - [Homologação de Integrações](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-5-integration-homologation.md)
 - [Resultados dos Testes Automatizados (187 PASS)](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-5-test-results.md)
+
+### Fase 6 (Monetização SaaS, Subscrições, Pagamentos, Quotas e Consola Admin)
+- [Relatório Técnico e Executivo da Fase 6](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-6-report.md)
+- [Arquitetura de Faturação e Monetização](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/billing-architecture.md)
+- [Ciclo de Vida & Máquina de Estados de Subscrições](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/subscription-lifecycle.md)
+- [Integração de Provedores (Stripe, Multicaixa, Mock)](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/payment-provider-integration.md)
+- [Segurança do Motor de Checkout](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/checkout-security.md)
+- [Processamento Idempotente de Webhooks](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/webhook-processing.md)
+- [Livro-Razão Financeiro de Partidas Dobradas](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/financial-ledger.md)
+- [Gestão de Quotas e Reservas Atómicas (Two-Phase)](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/usage-and-entitlements.md)
+- [FinOps e Contabilidade Analítica de Custos de IA](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/ai-cost-accounting.md)
+- [Consola Administrativa & Protocolo de Justificação](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/admin-dashboard.md)
+- [Auditoria de Segurança e RLS Fase 6](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-6-security-audit.md)
+- [Homologação em Sandbox e Simulações](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-6-sandbox-homologation.md)
+- [Registo de Riscos Pendentes e Regulamentares](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-6-pending-risks.md)
+- [Resultados dos Testes Automatizados (220 PASS)](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-6-test-results.md)
