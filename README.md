@@ -13,8 +13,10 @@ O **MEETWISE AI** é uma plataforma SaaS independente, multi-utilizador e multi-
 - **Motor de Inteligência de Reuniões Multi-LLM:** Suporte multi-provedor (`ILLMService` para OpenAI GPT-4o, Google Gemini 2.0 Flash, Anthropic Claude 3.5 Sonnet e Mock determinístico) com chunking inteligente, defesas XML contra prompt injection e estimativa de quotas.
 - **Extração Verificável de Decisões e Tarefas:** 6 estados de decisão (`approved_decision`, `proposed_decision`, `discussed_decision`, `rejected_decision`, `deferred_decision`, `pending_validation`) e 3 naturezas de tarefa com vinculação estrita a citações literais da transcrição.
 - **Workflow de Revisão Humana e Auditoria Imutável:** Máquina de estados de ata (`draft_ai` → `pending_review` → `validated_human` / `rejected_human` → `final_signed`), versionamento sequencial com diff e trilha completa em `audit_logs`.
+- **Exportação Profissional Cross-Format (DOCX, PDF, TXT):** Geração determinística baseada no Modelo Canónico (`CanonicalMeetingDocument`), com OpenXML nativo (`docx`), PDFs vectoriais A4 com paginação em 2 passos ("Página X de Y" via `pdfkit`) e exportação UTF-8 formatada a 80 colunas.
+- **Colaboração Controlada, OCC e Partilha Criptográfica SHA-256:** Numeração atómica sequencial por organização (`public.get_next_document_number`), controlo de concorrência otimista (prevenção de conflitos via HTTP 409), comentários com ciclo de vida e links de partilha pública gerados com tokens de 256 bits guardados sob hash SHA-256.
 - **Auditoria de Quotas & Livro de Consumo (`usage_ledger`):** Registo atómico e idempotente de consumo de minutos e tokens para evitar cobranças duplicadas em repetições técnicas.
-- **Suíte Abrangente de Testes Automatizados:** 161 testes automatizados (100% PASS) cobrindo unitários, integração de IA, validação heurística, RLS multi-tenant no PostgreSQL real (PGlite) e segurança.
+- **Suíte Abrangente de Testes Automatizados:** 187 testes automatizados (100% PASS) cobrindo unitários, integração de IA, validação heurística, RLS multi-tenant no PostgreSQL real (PGlite), geração e paridade de documentos DOCX/PDF/TXT e segurança.
 
 ---
 
@@ -54,6 +56,7 @@ meetwise-ai/
 │       ├── minutes/          # Modelos de ata e workflow de revisão humana
 │       ├── decisions/        # Validador heurístico de citação verbatim
 │       ├── tasks/            # Gestão e atribuição de ações com prazos
+│       ├── documents/        # Modelo Canónico, exportadores (DOCX/PDF/TXT), versionamento e partilha
 │       ├── billing/          # Livro de consumo idempotente e planos
 │       ├── administration/   # Auditoria técnica e métricas do sistema
 │       └── audit/            # Registo imutável de eventos de auditoria
@@ -121,3 +124,16 @@ Consulte a pasta [`docs/`](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs) par
 - [Auditoria de Segurança & Multi-Tenancy RLS Fase 4](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-4-security-audit.md)
 - [Avaliação de Qualidade e Confiabilidade de IA](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-4-ai-quality-evaluation.md)
 - [Modelo Financeiro & Custos de Inferência LLM](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-4-cost-model.md)
+
+### Fase 5 (Exportação Profissional, Colaboração, Versionamento e Segurança)
+- [Relatório Técnico da Fase 5](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-5-report.md)
+- [Arquitetura de Geração Documental](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/document-generation-architecture.md)
+- [Especificação do Exportador DOCX](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/docx-export.md)
+- [Especificação do Exportador PDF Vectorial](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/pdf-export.md)
+- [Sistema de Templates de Documentos](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/document-templates.md)
+- [Versionamento e Controlo de Concorrência (OCC)](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/document-versioning.md)
+- [Colaboração Segura e Ciclo de Comentários](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/document-collaboration.md)
+- [Partilha Criptográfica SHA-256 e Segurança](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/document-sharing-security.md)
+- [Auditoria de Segurança Técnica Fase 5](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-5-security-audit.md)
+- [Homologação de Integrações](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-5-integration-homologation.md)
+- [Resultados dos Testes Automatizados (187 PASS)](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-5-test-results.md)

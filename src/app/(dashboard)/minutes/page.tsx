@@ -27,6 +27,8 @@ export default function MinutesPage() {
             template_type,
             review_status,
             version,
+            document_number,
+            export_status,
             created_at,
             updated_at,
             meetings (
@@ -141,9 +143,16 @@ export default function MinutesPage() {
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <Badge variant="outline" className="uppercase font-mono text-2xs">
-                    {item.template_type}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    {item.document_number && (
+                      <Badge variant="outline" className="font-mono text-2xs font-bold text-slate-700 dark:text-slate-300">
+                        {item.document_number}
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="uppercase font-mono text-2xs">
+                      {item.template_type}
+                    </Badge>
+                  </div>
                   {getStatusBadge(item.review_status)}
                 </div>
 

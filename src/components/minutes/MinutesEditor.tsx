@@ -5,6 +5,10 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EvidenceViewer } from './EvidenceViewer';
+import { ExportModal } from './ExportModal';
+import { ShareModal } from './ShareModal';
+import { VersionHistoryModal } from './VersionHistoryModal';
+import { CommentsPanel } from './CommentsPanel';
 import type { MinutesReviewStatus, TemplateType } from '@/lib/supabase/database.types';
 
 export interface MinutesData {
@@ -107,6 +111,12 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
   const [saving, setSaving] = useState(false);
   const [statusActionPending, setStatusActionPending] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  // Phase 5 Modals
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showVersionModal, setShowVersionModal] = useState(false);
+  const [showCommentsPanel, setShowCommentsPanel] = useState(false);
 
   const isFinalSigned = minutes.review_status === 'final_signed';
   const isViewer = userRole === 'viewer';
@@ -321,6 +331,52 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
                 Ata assinada e bloqueada contra alterações
               </span>
             )}
+
+            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowExportModal(true)}
+              >
+                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Exportar
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowShareModal(true)}
+              >
+                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Partilhar
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowVersionModal(true)}
+              >
+                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Versões
+              </Button>
+
+              <Button
+                variant={showCommentsPanel ? 'brand' : 'outline'}
+                size="sm"
+                onClick={() => setShowCommentsPanel(!showCommentsPanel)}
+              >
+                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Comentários
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -702,6 +758,60 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
           )}
         </Card>
       )}
+
+      {/* Side-by-side Comments Drawer when open */}
+      {showCommentsPanel && (
+        <div className="fixed right-0 top-0 bottom-0 z-40 w-80 lg:w-96 shadow-2xl">
+          <div className="h-full flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between p-3 border-b dark:border-slate-800">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Colaboração & Comentários
+              </span>
+              <button
+                onClick={() => setShowCommentsPanel(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <CommentsPanel
+                meetingId={minutes.meeting_id}
+                minutesId={minutes.id}
+                organizationId={minutes.organization_id}
+                userRole={userRole}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 5 Modals */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        meetingId={minutes.meeting_id}
+        organizationId={minutes.organization_id}
+        documentNumber={minutes.metadata?.document_number || `ATA-2026-001`}
+        reviewStatus={minutes.review_status}
+        version={minutes.version}
+      />
+
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        meetingId={minutes.meeting_id}
+        minutesId={minutes.id}
+        organizationId={minutes.organization_id}
+        version={minutes.version}
+      />
+
+      <VersionHistoryModal
+        isOpen={showVersionModal}
+        onClose={() => setShowVersionModal(false)}
+        meetingId={minutes.meeting_id}
+        minutesId={minutes.id}
+      />
     </div>
   );
 };

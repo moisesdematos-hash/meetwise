@@ -34,6 +34,11 @@ export type DecisionClassification =
   | 'rejected';
 export type TemplateType = 'formal' | 'executive' | 'simplified' | 'custom';
 export type TaskNature = 'assigned' | 'suggested' | 'pending_confirmation';
+export type ExportFormat = 'docx' | 'pdf' | 'txt';
+export type DocumentExportStatus = 'not_exported' | 'exported' | 'pending';
+export type CommentStatus = 'open' | 'resolved' | 'rejected';
+export type ShareType = 'internal' | 'external_link';
+export type SharePermission = 'view' | 'comment';
 export type MinutesReviewStatus =
   | 'draft_ai'
   | 'pending_review'
@@ -482,6 +487,14 @@ export interface Database {
           reviewed_by: string | null;
           reviewed_at: string | null;
           version: number;
+          document_number: string | null;
+          assigned_reviewer_id: string | null;
+          review_requested_at: string | null;
+          review_requested_by: string | null;
+          signed_by_name: string | null;
+          signed_at: string | null;
+          export_status: DocumentExportStatus;
+          last_exported_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -500,6 +513,14 @@ export interface Database {
           reviewed_by?: string | null;
           reviewed_at?: string | null;
           version?: number;
+          document_number?: string | null;
+          assigned_reviewer_id?: string | null;
+          review_requested_at?: string | null;
+          review_requested_by?: string | null;
+          signed_by_name?: string | null;
+          signed_at?: string | null;
+          export_status?: DocumentExportStatus;
+          last_exported_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -518,6 +539,14 @@ export interface Database {
           reviewed_by?: string | null;
           reviewed_at?: string | null;
           version?: number;
+          document_number?: string | null;
+          assigned_reviewer_id?: string | null;
+          review_requested_at?: string | null;
+          review_requested_by?: string | null;
+          signed_by_name?: string | null;
+          signed_at?: string | null;
+          export_status?: DocumentExportStatus;
+          last_exported_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -708,6 +737,13 @@ export interface Database {
           storage_path: string;
           filename: string;
           file_size_bytes: number;
+          minutes_id: string | null;
+          version: number;
+          template_type: TemplateType;
+          template_id: string | null;
+          status: 'queued' | 'processing' | 'completed' | 'failed';
+          metadata: Json;
+          created_by: string | null;
           created_at: string;
         };
         Insert: {
@@ -719,6 +755,13 @@ export interface Database {
           storage_path: string;
           filename: string;
           file_size_bytes: number;
+          minutes_id?: string | null;
+          version?: number;
+          template_type?: TemplateType;
+          template_id?: string | null;
+          status?: 'queued' | 'processing' | 'completed' | 'failed';
+          metadata?: Json;
+          created_by?: string | null;
           created_at?: string;
         };
         Update: {
@@ -730,7 +773,204 @@ export interface Database {
           storage_path?: string;
           filename?: string;
           file_size_bytes?: number;
+          minutes_id?: string | null;
+          version?: number;
+          template_type?: TemplateType;
+          template_id?: string | null;
+          status?: 'queued' | 'processing' | 'completed' | 'failed';
+          metadata?: Json;
+          created_by?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      organization_document_sequences: {
+        Row: {
+          id: string;
+          organization_id: string;
+          prefix: string;
+          year: number;
+          last_number: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          prefix?: string;
+          year?: number;
+          last_number?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          prefix?: string;
+          year?: number;
+          last_number?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      meeting_document_versions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          meeting_id: string;
+          minutes_id: string;
+          version: number;
+          title: string;
+          content: string;
+          sections: Json;
+          review_status: string;
+          document_number: string | null;
+          change_reason: string | null;
+          snapshot: Json;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          meeting_id: string;
+          minutes_id: string;
+          version: number;
+          title: string;
+          content: string;
+          sections?: Json;
+          review_status: string;
+          document_number?: string | null;
+          change_reason?: string | null;
+          snapshot?: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          meeting_id?: string;
+          minutes_id?: string;
+          version?: number;
+          title?: string;
+          content?: string;
+          sections?: Json;
+          review_status?: string;
+          document_number?: string | null;
+          change_reason?: string | null;
+          snapshot?: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      meeting_document_comments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          meeting_id: string;
+          minutes_id: string;
+          user_id: string;
+          section_id: string | null;
+          content: string;
+          status: CommentStatus;
+          resolved_by: string | null;
+          resolved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          meeting_id: string;
+          minutes_id: string;
+          user_id: string;
+          section_id?: string | null;
+          content: string;
+          status?: CommentStatus;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          meeting_id?: string;
+          minutes_id?: string;
+          user_id?: string;
+          section_id?: string | null;
+          content?: string;
+          status?: CommentStatus;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      meeting_document_shares: {
+        Row: {
+          id: string;
+          organization_id: string;
+          meeting_id: string;
+          minutes_id: string;
+          version: number;
+          token_hash: string;
+          recipient_email: string | null;
+          share_type: ShareType;
+          permissions: SharePermission;
+          expires_at: string;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          created_by: string;
+          access_count: number;
+          max_accesses: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          meeting_id: string;
+          minutes_id: string;
+          version?: number;
+          token_hash: string;
+          recipient_email?: string | null;
+          share_type?: ShareType;
+          permissions?: SharePermission;
+          expires_at: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          created_by: string;
+          access_count?: number;
+          max_accesses?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          meeting_id?: string;
+          minutes_id?: string;
+          version?: number;
+          token_hash?: string;
+          recipient_email?: string | null;
+          share_type?: ShareType;
+          permissions?: SharePermission;
+          expires_at?: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          created_by?: string;
+          access_count?: number;
+          max_accesses?: number | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
