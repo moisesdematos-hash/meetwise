@@ -143,29 +143,20 @@ Em cumprimento da diretriz *"Não declarar idempotência absoluta sem evidência
 
 ---
 
-## 5. CONFIGURAÇÃO SEGURA DO PROJETO SUPABASE CLOUD STAGING
+## 5. CONFIGURAÇÃO REAL DO PROJETO SUPABASE CLOUD STAGING
 
-O responsável deverá criar o projeto exclusivo no painel do Supabase com os seguintes parâmetros:
-- **Plano:** Free ($0.00 USD)
-- **Nome:** `meetwise-ai-staging`
-- **Região:** `eu-central-1` (Frankfurt) ou `eu-west-1` (Irlanda)
-- **Confirmar:** $0.00 de custos adicionais e sem cartão associado a upgrades.
-
-Após a criação, o responsável criará o ficheiro `.env.local` na raiz do projeto com o template seguro:
-
-```bash
-# ==============================================================================
-# MEETWISE AI — STAGING CREDENTIALS (EXCLUSIVO .env.local - NUNCA COMITAR)
-# ==============================================================================
-NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT-REF].supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_DB_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
-```
+O projeto Supabase Cloud Staging foi disponibilizado e verificado com sucesso através de handshake direto:
+- **Project Reference:** `ycxwomqqepetickmxxqj`
+- **Endpoint Confirmado:** `https://ycxwomqqepetickmxxqj.supabase.co`
+- **Validação de Handshake:** Resposta HTTP 200 no endpoint `/auth/v1/settings` com chave pública confirmada.
+- **Estado Inicial da Base de Dados:** Instância 100% limpa (`Exposed definitions: none`).
+- **Ficheiro `.env.local`:** Criado na raiz do projeto, protegido pelo `.gitignore` e com permissões estritas.
+- **Segredos Restantes:** A chave `SUPABASE_SERVICE_ROLE_KEY` e a string direta `SUPABASE_DB_URL` permanecem reservadas no ambiente seguro e serão necessárias para as funções administrativas backend e execução DDL via script.
 
 ---
 
 ## 6. BLOQUEIOS E PRÓXIMA AUTORIZAÇÃO NECESSÁRIA
 
-1. **Bloqueador Ativo:** O projeto Supabase Cloud Staging necessita ser criado no painel oficial pelo responsável no plano Free, e as 4 variáveis preenchidas em `.env.local`.
-2. **Aprovação Necessária:** Autorização expressa para testar o handshake de rede e executar as migrações 01 a 07 na base de dados de Staging dedicada.
+1. **Estado Atual:** O projeto Supabase Cloud Staging está **CONECTADO E RESPONSIVO** no endpoint público.
+2. **Migrações:** Nenhuma tabela foi criada até ao momento (**0 migrações aplicadas**).
+3. **Aprovação Necessária:** Autorização expressa para a aplicação das 7 migrações SQL (01 a 07) no projeto `ycxwomqqepetickmxxqj` e teste do fluxo de autenticação e RLS real.
