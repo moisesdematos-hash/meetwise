@@ -23,6 +23,7 @@ O **MEETWISE AI** é uma plataforma SaaS independente, multi-utilizador e multi-
 - **FinOps & Rastreio de Custos de IA:** Telemetria de chamadas STT/LLM em `ai_provider_requests`, cálculo em tempo real de margens brutas por organização e alertas de margem baixa (<60%).
 - **Painel Administrativo Central & Auditoria Mandatória:** Suite completa em `/admin/*` exigindo justificação com no mínimo 10 caracteres para qualquer intervenção em contas de clientes gravada em `public.audit_logs`.
 - **Suíte Abrangente de Testes Automatizados:** 222 testes automatizados (100% PASS) em 42 ficheiros cobrindo unitários, integração de IA, validação heurística, RLS multi-tenant no PostgreSQL real (PGlite), geração e paridade de documentos DOCX/PDF/TXT, partidas dobradas, webhooks, segurança de pagamentos e integridade de gatilhos.
+- **Homologação e Arquitetura E2E da Fase 7.1:** Suite completa de testes Playwright (`tests/e2e/`), auditoria de resiliência multi-gateway (Stripe e EMIS/Multicaixa), mitigação de prompt-injection, análise FinOps e decisão técnica formal **CONDITIONAL GO PARA STAGING INTERNO** documentada exaustivamente na pasta `docs/`.
 
 ---
 
