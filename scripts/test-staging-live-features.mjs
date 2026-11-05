@@ -15,17 +15,13 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 async function runLiveTests() {
   console.log('1. Checking Storage Buckets...');
-  const { data: buckets, error: bucketErr } = await supabase.storage.listBuckets();
-  
-  if (bucketErr) {
-    console.log('⚠️ Could not list buckets via anon API:', bucketErr.message);
-  } else {
-    console.log(`✅ Found ${buckets.length} storage buckets:`, buckets.map(b => `${b.id} (public: ${b.public})`));
-    const hasRecordings = buckets.some(b => b.id === 'meeting_recordings');
-    const hasDocuments = buckets.some(b => b.id === 'meeting_documents');
-    console.log(`   - meeting_recordings bucket: ${hasRecordings ? 'PASS ✅' : 'FAIL ❌'}`);
-    console.log(`   - meeting_documents bucket: ${hasDocuments ? 'PASS ✅' : 'FAIL ❌'}`);
-  }
+  const { data: recData, error: recErr } = await supabase.storage.from('meeting_recordings').list();
+  const hasRecordings = !recErr;
+  console.log(`   - meeting_recordings bucket: ${hasRecordings ? 'PASS ✅ (Active, error: null)' : 'FAIL ❌ (' + recErr?.message + ')'}`);
+
+  const { data: docData, error: docErr } = await supabase.storage.from('meeting_documents').list();
+  const hasDocuments = !docErr;
+  console.log(`   - meeting_documents bucket: ${hasDocuments ? 'PASS ✅ (Active, error: null)' : 'FAIL ❌ (' + docErr?.message + ')'}`);
 
   console.log('\n2. Testing RLS Protection on Sensitive Tenant Tables (Unauthenticated caller)...');
   // Reading organization_members without auth must return 0 rows (RLS restriction)
