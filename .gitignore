@@ -15,6 +15,9 @@ out/
 coverage/
 test-results/
 
+# Supabase CLI temp
+supabase/.temp/
+
 # Production artifacts
 build/
 dist/
