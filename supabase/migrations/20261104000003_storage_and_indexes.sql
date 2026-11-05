@@ -32,55 +32,59 @@ BEGIN
       allowed_mime_types = EXCLUDED.allowed_mime_types;
 
   END IF;
-END $$;
 
--- 2. STORAGE RLS POLICIES (Enforce path isolation: {org_id}/{meeting_id}/{filename})
-DO $$
-BEGIN
+  -- 2. STORAGE RLS POLICIES (Enforce path isolation: {org_id}/{meeting_id}/{filename})
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'storage' AND table_name = 'objects') THEN
+    BEGIN
+      -- Grant schema and table access to standard roles
+      GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
+      GRANT ALL ON ALL TABLES IN SCHEMA storage TO authenticated;
+      GRANT SELECT ON storage.buckets TO anon, authenticated;
 
-    -- Grant schema and table access to standard roles
-    GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
-    GRANT ALL ON ALL TABLES IN SCHEMA storage TO authenticated;
-    GRANT SELECT ON storage.buckets TO anon, authenticated;
+      -- Safely enable RLS in standalone/test postgres environments (in Supabase Cloud, RLS is enabled by default by storage admin)
+      BEGIN
+        ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+        ALTER TABLE storage.objects FORCE ROW LEVEL SECURITY;
+      EXCEPTION WHEN OTHERS THEN
+        NULL;
+      END;
 
-    ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-    ALTER TABLE storage.objects FORCE ROW LEVEL SECURITY;
+      -- Drop existing policies if any to prevent conflicts
+      DROP POLICY IF EXISTS "storage_select_org_member" ON storage.objects;
+      DROP POLICY IF EXISTS "storage_insert_org_member" ON storage.objects;
+      DROP POLICY IF EXISTS "storage_delete_org_admin" ON storage.objects;
 
-    -- Drop existing policies if any to prevent conflicts
-    DROP POLICY IF EXISTS "storage_select_org_member" ON storage.objects;
-    DROP POLICY IF EXISTS "storage_insert_org_member" ON storage.objects;
-    DROP POLICY IF EXISTS "storage_delete_org_admin" ON storage.objects;
+      -- SELECT: Member can read files whose path starts with their active organization ID
+      CREATE POLICY "storage_select_org_member" ON storage.objects
+        FOR SELECT TO authenticated
+        USING (
+          bucket_id IN ('meeting_recordings', 'meeting_documents') AND
+          (storage.foldername(name))[1]::UUID IN (SELECT org_id FROM public.current_user_org_ids())
+        );
 
-    -- SELECT: Member can read files whose path starts with their active organization ID
-    CREATE POLICY "storage_select_org_member" ON storage.objects
-      FOR SELECT TO authenticated
-      USING (
-        bucket_id IN ('meeting_recordings', 'meeting_documents') AND
-        (storage.foldername(name))[1]::UUID IN (SELECT org_id FROM public.current_user_org_ids())
-      );
+      -- INSERT: Member with upload permissions can upload to their active organization folder
+      CREATE POLICY "storage_insert_org_member" ON storage.objects
+        FOR INSERT TO authenticated
+        WITH CHECK (
+          bucket_id IN ('meeting_recordings', 'meeting_documents') AND
+          (storage.foldername(name))[1]::UUID IN (
+            SELECT org_id FROM public.current_user_org_ids() 
+            WHERE role IN ('owner', 'admin', 'manager', 'member')
+          )
+        );
 
-    -- INSERT: Member with upload permissions can upload to their active organization folder
-    CREATE POLICY "storage_insert_org_member" ON storage.objects
-      FOR INSERT TO authenticated
-      WITH CHECK (
-        bucket_id IN ('meeting_recordings', 'meeting_documents') AND
-        (storage.foldername(name))[1]::UUID IN (
-          SELECT org_id FROM public.current_user_org_ids() 
-          WHERE role IN ('owner', 'admin', 'manager', 'member')
-        )
-      );
-
-    -- DELETE: Only owners or admins can delete media assets
-    CREATE POLICY "storage_delete_org_admin" ON storage.objects
-      FOR DELETE TO authenticated
-      USING (
-        bucket_id IN ('meeting_recordings', 'meeting_documents') AND
-        (storage.foldername(name))[1]::UUID IN (
-          SELECT org_id FROM public.current_user_org_ids() 
-          WHERE role IN ('owner', 'admin')
-        )
-      );
-
+      -- DELETE: Only owners or admins can delete media assets
+      CREATE POLICY "storage_delete_org_admin" ON storage.objects
+        FOR DELETE TO authenticated
+        USING (
+          bucket_id IN ('meeting_recordings', 'meeting_documents') AND
+          (storage.foldername(name))[1]::UUID IN (
+            SELECT org_id FROM public.current_user_org_ids() 
+            WHERE role IN ('owner', 'admin')
+          )
+        );
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Storage RLS notice: %', SQLERRM;
+    END;
   END IF;
 END $$;

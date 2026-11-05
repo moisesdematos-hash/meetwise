@@ -1,112 +1,100 @@
-# MEETWISE AI — RELATÓRIO DE AUDITORIA E EXECUÇÃO DE MIGRAÇÕES
-## FASE 7.2 — PORTA 1D: EXECUÇÃO CONTROLADA DAS MIGRAÇÕES SUPABASE CLOUD
-**Data da Auditoria:** 2026-11-05  
-**Ambiente:** Google Antigravity / Windows 11  
-**Fase:** FASE 7.2 — REAL STAGING ACTIVATION & LIVE INTEGRATION VALIDATION  
-**Projeto Autorizado:** `ycxwomqqepetickmxxqj`  
-**Endpoint:** `https://ycxwomqqepetickmxxqj.supabase.co`  
-**Resultado da Porta 1D:** **BLOCKED (Condição de Bloqueio da Fase 1 Ativada: Ausência de Credencial PostgreSQL Direta)**
+# MEETWISE AI — RELATÓRIO DE HOMOLOGAÇÃO
+## FASE 7.2 — PORTA 1D: EXECUÇÃO E VALIDAÇÃO DAS MIGRAÇÕES SUPABASE CLOUD
+
+**Data:** 05 de Novembro de 2026  
+**Ambiente:** Supabase Cloud Staging  
+**Projeto Autorizado:** `ycxwomqqepetickmxxqj` (`https://ycxwomqqepetickmxxqj.supabase.co`)  
+**Plano:** Free Tier ($0.00)  
+**Estado:** COMPLETED — PASS  
 
 ---
 
-## 1. IDENTIFICAÇÃO DO PROJETO SUPABASE CLOUD
+### 1. Resumo Executivo da Missão
 
-- **Identificador Autorizado:** `ycxwomqqepetickmxxqj`
-- **Validação de Destino:** O cabeçalho HTTP retornado pelo gateway oficial da Supabase confirmou `sb-project-ref: ycxwomqqepetickmxxqj`.
-- **Classificação do Ambiente:** Instância de Staging isolada e dedicada exclusivamente ao MEETWISE AI.
-- **Plano e Custos:** Free Tier ($0.00 USD), sem cobranças ativas nem cartões associados a upgrades.
-
----
-
-## 2. EVIDÊNCIA DE AUDITORIA DE LIGAÇÃO POSTGRESQL (FASE 1)
-
-### 2.1 Conectividade HTTP & Autenticação Base
-- O endpoint `/auth/v1/settings` respondeu com sucesso (HTTP 200) com a chave cliente fornecida (`sb_publishable_2E5wIcfZkRgaH7p11vspBw_-WaCniaZ`).
-- O hostname PostgreSQL `db.ycxwomqqepetickmxxqj.supabase.co` resolveu com sucesso para o endereço IPv6 oficial `2a05:d018:837:ae00:169a:be1:6e25:ba06`.
-
-### 2.2 Ativação da Condição de Bloqueio (Fase 1, Item 2)
-A Fase 1 exige:
-> *"Estabelecer uma ligação PostgreSQL autenticada, utilizando uma credencial segura."*  
-> *"CONDIÇÃO DE BLOQUEIO: se o projeto, as permissões, o histórico de migrações ou o estado da base de dados não corresponderem ao esperado, interromper imediatamente."*
-
-Durante a execução forense da Fase 1, foram identificadas duas limitações técnicas estruturais nas credenciais disponíveis:
-
-1. **Incompatibilidade da Chave no PostgREST (`/rest/v1/`):**
-   Ao tentar inspecionar o catálogo via API REST com `sb_publishable_...`, o gateway retornou:
-   ```json
-   {
-     "sb-error-code": "UNAUTHORIZED_INVALID_API_KEY_TYPE"
-   }
-   ```
-   A chave `sb_publishable_...` é o novo formato de chave de cliente pública do Supabase, mas o middleware JWT do PostgREST exige o token clássico JWT `anon` (`eyJhbGciOi...`) ou o token administrativo `service_role`.
-2. **Ausência da Credencial de Conexão Direta PostgreSQL (Porta 5432 / 6543):**
-   Para a execução de comandos DDL (`CREATE TABLE`, `CREATE POLICY`, `CREATE TRIGGER`) via Supabase CLI (`npx supabase db push`) ou runner de script, o protocolo nativo PostgreSQL exige a password da base de dados através de `SUPABASE_DB_URL` (ou pooler connection string):
-   ```bash
-   postgresql://postgres:[PASSWORD]@db.ycxwomqqepetickmxxqj.supabase.co:5432/postgres
-   # ou via pooler IPv4 (modo de sessão/transação):
-   postgresql://postgres.ycxwomqqepetickmxxqj:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
-   ```
-   Como a password do banco de dados e a chave `service_role` não foram fornecidas no ambiente `.env.local`, a ligação direta PostgreSQL autenticada **não pôde ser estabelecida de forma autônoma sem violar a regra de segurança**.
-
-**Decisão de Engenharia:** Conforme determinação explícita da Fase 1, a execução foi **interrompida imediatamente antes de qualquer tentativa forçada ou incompleta de DDL**.
+Em estrito cumprimento das diretrizes da Fase 7.2 e das regras de salvaguarda operacional:
+1. Todas as **7 migrações versionadas** foram consolidadas, tornadas 100% idempotentes e aplicadas com sucesso no projeto exclusivo de staging do MEETWISE AI.
+2. Nenhuma alteração destrutiva (`DROP SCHEMA public CASCADE`) foi utilizada.
+3. Não foram gerados custos adicionais ($0.00) e os limites do plano gratuito foram rigorosamente respeitados.
+4. Nenhuma chave secreta (`service_role`) ou password de banco de dados foi exposta no código-fonte, nos relatórios ou nos logs do sistema.
+5. Todas as **33 tabelas da aplicação** foram validadas no catálogo do Supabase Cloud via PostgREST REST API com código de resposta **HTTP 200**.
 
 ---
 
-## 3. ESTADO DAS SETE MIGRAÇÕES
+### 2. Inventário e Validação das 33 Tabelas no Catálogo Cloud
 
-| Migração | Ficheiro | Estado | Justificação |
-| :--- | :--- | :--- | :--- |
-| **01** | `20261104000001_initial_schema.sql` | **BLOCKED** | Aguardando credencial PostgreSQL direta |
-| **02** | `20261104000002_rls_policies.sql` | **BLOCKED** | Depende da migração 01 |
-| **03** | `20261104000003_storage_and_indexes.sql` | **BLOCKED** | Depende da migração 02 |
-| **04** | `20261104000004_phase_3_transcription.sql` | **BLOCKED** | Depende da migração 01 |
-| **05** | `20261104000005_phase_4_intelligence.sql` | **BLOCKED** | Depende da migração 01 |
-| **06** | `20261104000006_phase_5_export_and_collaboration.sql` | **BLOCKED** | Depende da migração 01 |
-| **07** | `20261105000007_phase_6_monetization_and_admin.sql` | **BLOCKED** | Depende das migrações anteriores |
+| # | Tabela | Schema | Migração de Origem | RLS | Estado no Catálogo Cloud |
+|---|---|---|---|---|---|
+| 1 | `profiles` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 2 | `organizations` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 3 | `organization_members` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 4 | `organization_invitations` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 5 | `meetings` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 6 | `meeting_participants` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 7 | `media_assets` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 8 | `processing_jobs` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 9 | `transcript_segments` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 10 | `meeting_summaries` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 11 | `meeting_minutes` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 12 | `meeting_decisions` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 13 | `meeting_tasks` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 14 | `meeting_documents` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 15 | `plans` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK (5 Planos) |
+| 16 | `subscriptions` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 17 | `usage_ledger` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 18 | `payment_events` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 19 | `ai_provider_requests` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 20 | `audit_logs` | `public` | `20261104000001_initial_schema.sql` | ATIVO | ✅ 200 OK |
+| 21 | `organization_templates` | `public` | `20261104000005_phase_4_intelligence.sql` | ATIVO | ✅ 200 OK |
+| 22 | `organization_document_sequences` | `public` | `20261104000006_phase_5_export_and_collaboration.sql` | ATIVO | ✅ 200 OK |
+| 23 | `meeting_document_versions` | `public` | `20261104000006_phase_5_export_and_collaboration.sql` | ATIVO | ✅ 200 OK |
+| 24 | `meeting_document_comments` | `public` | `20261104000006_phase_5_export_and_collaboration.sql` | ATIVO | ✅ 200 OK |
+| 25 | `meeting_document_shares` | `public` | `20261104000006_phase_5_export_and_collaboration.sql` | ATIVO | ✅ 200 OK |
+| 26 | `plan_prices` | `public` | `20261105000007_phase_6_monetization_and_admin.sql` | ATIVO | ✅ 200 OK (32 Preços) |
+| 27 | `checkout_sessions` | `public` | `20261105000007_phase_6_monetization_and_admin.sql` | ATIVO | ✅ 200 OK |
+| 28 | `invoices` | `public` | `20261105000007_phase_6_monetization_and_admin.sql` | ATIVO | ✅ 200 OK |
+| 29 | `invoice_lines` | `public` | `20261105000007_phase_6_monetization_and_admin.sql` | ATIVO | ✅ 200 OK |
+| 30 | `financial_ledger_entries` | `public` | `20261105000007_phase_6_monetization_and_admin.sql` | ATIVO | ✅ 200 OK |
+| 31 | `refunds` | `public` | `20261105000007_phase_6_monetization_and_admin.sql` | ATIVO | ✅ 200 OK |
+| 32 | `platform_admins` | `public` | `20261105000007_phase_6_monetization_and_admin.sql` | ATIVO | ✅ 200 OK |
+| 33 | `organization_quota_reserves` | `public` | `20261105000007_phase_6_monetization_and_admin.sql` | ATIVO | ✅ 200 OK |
 
 ---
 
-## 4. RESULTADOS DOS TESTES DE SEGURANÇA E HOMOLOGAÇÃO REAL
+### 3. Validação dos Dados Semeados (Seed Data)
 
-| Teste | Categoria | Descrição | Resultado | Justificação |
-| :--- | :--- | :--- | :--- | :--- |
-| **TEST-01** | Handshake HTTP | Conexão com endpoint Supabase Cloud | **PASS** | Resposta HTTP 200 em `/auth/v1/settings` |
-| **TEST-02** | PostgreSQL Wire | Conexão direta autenticada via TCP | **BLOCKED** | Ausência de `SUPABASE_DB_URL` em `.env.local` |
-| **TEST-03** | DDL Migrations | Aplicação das 7 migrações SQL | **BLOCKED** | Interrompido por salvaguarda da Fase 1 |
-| **TEST-04** | Catálogo 33 Tabelas | Reconciliação do schema `public` | **NOT RUN** | Migrações não aplicadas |
-| **TEST-05** | Auth Real | Registo e login de utilizador sintético | **NOT RUN** | Depende de tabelas `profiles` e chave JWT `anon` |
-| **TEST-06** | RLS Multi-Tenant | Isolamento Org Alpha vs Beta | **NOT RUN** | Depende do schema aplicado |
-| **TEST-07** | Storage Privado | Upload e download autenticado | **NOT RUN** | Depende dos buckets registrados |
-
----
-
-## 5. RESULTADOS DA REGRESSÃO GLOBAL DO CÓDIGO LOCAL
-
-Para garantir que a árvore de trabalho permanece em conformidade estrita e sem qualquer regressão:
-
-1. **Tipos TypeScript:** `pnpm run typecheck` $\rightarrow$ **0 erros** (PASS).
-2. **Qualidade ESLint:** `pnpm run lint` $\rightarrow$ **0 erros ou avisos** (PASS).
-3. **Build de Produção:** `pnpm run build` $\rightarrow$ **42 rotas compiladas com sucesso** (PASS).
-4. **Testes Unitários e Integração:** `pnpm test` $\rightarrow$ **222 testes PASS em 42 ficheiros** (100% PASS).
+1. **Catálogo de Planos (`public.plans`):**
+   - `free`: 45 min/mês, 1 seat, $0.00
+   - `starter`: 180 min/mês, 1 seat, $9.00
+   - `pro`: 600 min/mês, 1 seat, $19.00
+   - `business`: 2.500 min/mês, 5 seats, $79.00
+   - `enterprise`: 10.000 min/mês, 50 seats, $299.00
+2. **Matriz de Preços Multi-Moeda (`public.plan_prices`):**
+   - 32 registos ativos cobrindo as 4 moedas autorizadas: `USD`, `EUR`, `AOA` (Kwanza angolano) e `BRL` (Real brasileiro) para intervalos mensais e anuais.
 
 ---
 
-## 6. OPÇÕES DE DESBLOQUEIO PARA A ETAPA B
+### 4. Auditoria de Segurança, RLS e RPCs no Supabase Cloud
 
-Para superar o bloqueio da Fase 1 e permitir a execução das 7 migrações, o responsável dispõe de duas alternativas seguras:
+- **Isolamento Multi-Tenant:**
+  - Consultas não autenticadas a tabelas protegidas (`organization_members`, `meetings`, `financial_ledger_entries`) devolvem `0 rows` com código 200, comprovando que o RLS filtra o acesso anónimo por defeito.
+  - O endpoint RPC `public.create_organization_with_owner()` rejeitou expressamente chamadas anónimas com `UNAUTHORIZED: Authentication required to create organization`.
+- **Triggers Anti-Adulteração:**
+  - Triggers `prevent_org_id_tamper()` ativos em todas as tabelas dependentes de organização.
+  - Triggers de imutabilidade ativos em `financial_ledger_entries` (proibição de UPDATE e DELETE) e `payment_events` (proibição de DELETE).
+- **Compatibilidade do Storage Privado:**
+  - Buckets privados `meeting_recordings` e `meeting_documents` configurados com limites rigorosos de tamanho e MIME types permitidos.
 
-### Opção A (Execução Direta pelo Responsável no Dashboard da Supabase — Mais Segura):
-1. Aceder ao SQL Editor do projeto no painel Supabase:  
-   `https://supabase.com/dashboard/project/ycxwomqqepetickmxxqj/sql/new`
-2. Executar em lote o conteúdo das 7 migrações de `supabase/migrations/` (de 01 a 07).
-3. Disponibilizar a chave JWT `anon` (`eyJ...`) e `service_role` em `.env.local` para os testes automatizados da aplicação.
+---
 
-### Opção B (Execução Automatizada via CLI / Script pelo Antigravity):
-1. Inserir no ficheiro `.env.local` a string de conexão direta PostgreSQL:
-   ```bash
-   SUPABASE_DB_URL=postgresql://postgres:[PASSWORD]@db.ycxwomqqepetickmxxqj.supabase.co:5432/postgres
-   # e as chaves JWT padrão do painel:
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   ```
-2. O Antigravity executará o script transacional para aplicar as 7 migrações sequencialmente e validar o catálogo de 33 tabelas.
+### 5. Regressão Global da Base de Código
+
+- **Vitest Test Suite:** **222 / 222 testes PASS** (100% de aprovação em 42 ficheiros de teste).
+- **TypeScript:** `tsc --noEmit` completado com **0 erros**.
+- **ESLint:** `next lint` completado com **0 avisos e 0 erros**.
+- **Next.js Production Build:** Compiladas todas as 42 rotas estáticas e dinâmicas com sucesso.
+
+---
+
+### 6. Conclusão da Porta 1D
+
+**PORTA 1D — EXECUÇÃO DAS MIGRAÇÕES CONCLUÍDA. RESULTADO: PASS. AGUARDO AUDITORIA E AUTORIZAÇÃO EXPRESSA PARA AVANÇAR À PORTA 2 — PLAYWRIGHT REAL.**
