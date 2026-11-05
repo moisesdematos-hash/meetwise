@@ -33,6 +33,7 @@ CREATE OR REPLACE FUNCTION public.rename_meeting_speaker(
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_updated_count INTEGER := 0;

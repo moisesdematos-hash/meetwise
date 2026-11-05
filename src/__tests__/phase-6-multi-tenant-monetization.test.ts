@@ -248,4 +248,75 @@ describe('MEETWISE AI — Phase 6 PostgreSQL Real Multi-Tenant Monetization & Se
       `)
     ).rejects.toThrow();
   });
+
+  it('strictly forbids UPDATE or DELETE on financial_ledger_entries via trigger', async () => {
+    const orgId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    const txId = '11111111-2222-3333-4444-555555555555';
+
+    // Insert valid entry
+    await db.exec(`
+      INSERT INTO public.financial_ledger_entries (
+        id, transaction_id, organization_id, account_type, entry_type,
+        amount_cents, currency, reference_type, reference_id, description
+      ) VALUES (
+        '99999999-0000-0000-0000-000000000001',
+        '${txId}',
+        '${orgId}',
+        'revenue',
+        'credit',
+        4900,
+        'USD',
+        'invoice',
+        'inv-audit-test',
+        'Subscription initial credit'
+      );
+    `);
+
+    // Verify UPDATE fails with trigger exception
+    await expect(
+      db.query(`
+        UPDATE public.financial_ledger_entries
+        SET amount_cents = 9999
+        WHERE id = '99999999-0000-0000-0000-000000000001';
+      `)
+    ).rejects.toThrow(/Modifications or deletions to financial ledger entries are forbidden/);
+
+    // Verify DELETE fails with trigger exception
+    await expect(
+      db.query(`
+        DELETE FROM public.financial_ledger_entries
+        WHERE id = '99999999-0000-0000-0000-000000000001';
+      `)
+    ).rejects.toThrow(/Modifications or deletions to financial ledger entries are forbidden/);
+  });
+
+  it('strictly forbids DELETE on payment_events via trigger', async () => {
+    const orgId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+    // Insert valid payment event
+    await db.exec(`
+      INSERT INTO public.payment_events (
+        id, organization_id, provider, external_event_id, event_type,
+        amount_cents, currency, status, payload
+      ) VALUES (
+        '88888888-0000-0000-0000-000000000001',
+        '${orgId}',
+        'stripe',
+        'evt_test_audit_123',
+        'payment_intent.succeeded',
+        4900,
+        'USD',
+        'processed',
+        '{"test": true}'::jsonb
+      );
+    `);
+
+    // Verify DELETE fails
+    await expect(
+      db.query(`
+        DELETE FROM public.payment_events
+        WHERE id = '88888888-0000-0000-0000-000000000001';
+      `)
+    ).rejects.toThrow(/Deletions of payment events are forbidden/);
+  });
 });

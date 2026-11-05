@@ -22,7 +22,7 @@ O **MEETWISE AI** é uma plataforma SaaS independente, multi-utilizador e multi-
 - **Reservas Atómicas de Quotas (Two-Phase):** Prevenção de concorrência com reservas em `organization_quota_reserves`, liquidação pós-sucesso e libertação automática em falhas.
 - **FinOps & Rastreio de Custos de IA:** Telemetria de chamadas STT/LLM em `ai_provider_requests`, cálculo em tempo real de margens brutas por organização e alertas de margem baixa (<60%).
 - **Painel Administrativo Central & Auditoria Mandatória:** Suite completa em `/admin/*` exigindo justificação com no mínimo 10 caracteres para qualquer intervenção em contas de clientes gravada em `public.audit_logs`.
-- **Suíte Abrangente de Testes Automatizados:** 220 testes automatizados (100% PASS) em 42 ficheiros cobrindo unitários, integração de IA, validação heurística, RLS multi-tenant no PostgreSQL real (PGlite), geração e paridade de documentos DOCX/PDF/TXT, partidas dobradas, webhooks e segurança de pagamentos.
+- **Suíte Abrangente de Testes Automatizados:** 222 testes automatizados (100% PASS) em 42 ficheiros cobrindo unitários, integração de IA, validação heurística, RLS multi-tenant no PostgreSQL real (PGlite), geração e paridade de documentos DOCX/PDF/TXT, partidas dobradas, webhooks, segurança de pagamentos e integridade de gatilhos.
 
 ---
 
@@ -159,3 +159,25 @@ Consulte a pasta [`docs/`](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs) par
 - [Homologação em Sandbox e Simulações](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-6-sandbox-homologation.md)
 - [Registo de Riscos Pendentes e Regulamentares](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-6-pending-risks.md)
 - [Resultados dos Testes Automatizados (220 PASS)](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-6-test-results.md)
+
+### Fase 7 (Go-Live Master Check 1.0 — Auditoria Integral e Parecer Técnico)
+- [Relatório Mestre de Auditoria e Decisão Go-Live](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-master-report.md)
+- [Auditoria de Baseline e Reconciliação Histórica](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-baseline-audit.md)
+- [Matriz de Evidências Técnicas e Rastreabilidade](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-evidence-matrix.md)
+- [Auditoria de Segurança Aplicacional e Hardening](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-security-audit.md)
+- [Auditoria Profunda de PostgreSQL, RLS e RPC](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-rls-audit.md)
+- [Homologação de Transcrição e Speech-to-Text](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-stt-homologation.md)
+- [Avaliação de Qualidade de Inteligência de Reuniões e Atas](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-llm-quality-evaluation.md)
+- [Auditoria de Exportação Documental (DOCX, PDF, TXT)](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-documents-audit.md)
+- [Homologação de Gateways de Pagamento (Stripe, EMIS)](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-payments-homologation.md)
+- [Auditoria Financeira e Livro-Razão de Partidas Dobradas](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-financial-ledger-audit.md)
+- [Auditoria de Quotas, Reservas Atómicas e Concorrência](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-quota-concurrency.md)
+- [Análise de FinOps, Unit Economics e Câmbio](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-finops-analysis.md)
+- [Relatório de Testes End-to-End e Playwright](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-playwright-results.md)
+- [Relatório de Performance, Latência e Resiliência](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-performance-report.md)
+- [Política de Backup e Disaster Recovery](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-backup-recovery.md)
+- [Revisão de Privacidade e Proteção de Dados (RGPD/LPDP)](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-privacy-review.md)
+- [Auditoria de Prontidão de Deploy e Ambientes](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-deployment-readiness.md)
+- [Registo Consolidado de Riscos Técnicos](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-risk-register.md)
+- [Registo de Remediação e Correção de Falhas](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-remediation-log.md)
+- [Parecer Técnico de Decisão Final: CONDITIONAL GO](file:///c:/Users/HP/Downloads/MEETWISE%20AI/docs/phase-7-final-go-no-go.md)

@@ -47,6 +47,7 @@ CREATE OR REPLACE FUNCTION public.get_next_document_number(
 RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_next_num INTEGER;

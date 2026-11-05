@@ -9,6 +9,7 @@ const PROTECTED_PREFIXES = [
   '/team',
   '/settings',
   '/onboarding',
+  '/admin',
 ];
 
 const AUTH_PAGES = [

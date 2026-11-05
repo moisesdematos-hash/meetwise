@@ -251,6 +251,7 @@ CREATE OR REPLACE FUNCTION public.get_next_invoice_number(p_org_id UUID, p_year 
 RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_seq INTEGER;
@@ -353,3 +354,33 @@ CREATE TRIGGER trg_tamper_refunds BEFORE UPDATE ON public.refunds
 
 CREATE TRIGGER trg_tamper_quota_reserves BEFORE UPDATE ON public.organization_quota_reserves
   FOR EACH ROW EXECUTE FUNCTION public.prevent_org_id_tamper();
+
+-- Imutabilidade do Ledger Financeiro (Proibição estrita de UPDATE e DELETE)
+CREATE OR REPLACE FUNCTION public.fn_prevent_ledger_tampering()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  RAISE EXCEPTION 'Modifications or deletions to financial ledger entries are forbidden';
+END;
+$$;
+
+CREATE TRIGGER trigger_financial_ledger_no_update_delete
+BEFORE UPDATE OR DELETE ON public.financial_ledger_entries
+FOR EACH ROW EXECUTE FUNCTION public.fn_prevent_ledger_tampering();
+
+-- Imutabilidade dos Eventos de Pagamento (Proibição estrita de DELETE)
+CREATE OR REPLACE FUNCTION public.fn_prevent_payment_events_deletion()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  RAISE EXCEPTION 'Deletions of payment events are forbidden';
+END;
+$$;
+
+CREATE TRIGGER trigger_payment_events_no_delete
+BEFORE DELETE ON public.payment_events
+FOR EACH ROW EXECUTE FUNCTION public.fn_prevent_payment_events_deletion();
