@@ -1,0 +1,209 @@
+{
+  "timestamp": "2026-11-06T20:09:43.284Z",
+  "project": "ycxwomqqepetickmxxqj",
+  "mode": "READ_ONLY",
+  "checks": {
+    "target": {
+      "ref": "ycxwomqqepetickmxxqj",
+      "url": "https://ycxwomqqepetickmxxqj.supabase.co"
+    },
+    "git": {
+      "head": "4c8c812c5490258465de5abd83e969512617e20d",
+      "porcelain": "M tsconfig.tsbuildinfo\n?? scripts/execute-phase-d1b1a-cloud-preflight.mjs\n?? test-evidence/phase-7-2-gate-2-d1b1a-cloud-preflight.json"
+    },
+    "migrationHashes": {
+      "20261104000001_initial_schema.sql": "881BEF26B5470C70B50E6B9BB7F1183070643D975C3C673325C7D8CD514BADB4",
+      "20261104000002_rls_policies.sql": "2CA896EC8C4F19E5B710AEA8AAE087584A93270A94FA7C569DC7ABD09575DA3C",
+      "20261104000003_storage_and_indexes.sql": "B946C7FA15731038F3AF9444E806F95F2EAF24F7AC9C93FD67244DEF1CF4881D",
+      "20261104000004_phase_3_transcription.sql": "129D55DE6CC84625D9157C31283CAD7B138367AB6BA4C069B6CECAA5A17F790C",
+      "20261104000005_phase_4_intelligence.sql": "5365E9AADEB34BB1BA5325F1D0BEF0613B54FDF9B04755D13F288D68682B4EC7",
+      "20261104000006_phase_5_export_and_collaboration.sql": "9F005FFEA9104C43CF3167E8B20EAFC6A70538E475D1F8C1313C2F06C37A75F1",
+      "20261105000007_phase_6_monetization_and_admin.sql": "945D302DFFFBCCD314BEEE6F9607EF722EE5979E4CEA67C7A87A2ABB1211E21E",
+      "20261106000008_profiles_insert_and_onboarding_fix.sql": "50AEDB97D163832F4A446BE902FD99534F648DD9D015B5C376140E02BDC6F0B7",
+      "20261106000009_financial_integrity_and_audit_security.sql": "C45EBFFC37D2F119AFE6A09FE1D84E54E0544B37F0572131C94597D02646F6C2",
+      "20261106000010_concurrency_and_quota_atomicity.sql": "0DCA54A56526B79A2244DC02B145831C458D0C4A4DCAC060C3786BFB6E0B80C3"
+    },
+    "migration010HashMatch": true,
+    "sessions": [
+      "alphaOwner",
+      "alphaMember",
+      "betaOwner",
+      "externalUser"
+    ],
+    "openapi": {
+      "anon": {
+        "http": 401,
+        "available": false,
+        "rpcPresence": {
+          "reserve_organization_quota": false,
+          "release_organization_quota": false,
+          "settle_organization_quota": false,
+          "get_next_invoice_number": false,
+          "current_user_org_ids": false
+        }
+      },
+      "alphaOwner": {
+        "http": 401,
+        "available": false,
+        "rpcPresence": {
+          "reserve_organization_quota": false,
+          "release_organization_quota": false,
+          "settle_organization_quota": false,
+          "get_next_invoice_number": false,
+          "current_user_org_ids": false
+        }
+      }
+    },
+    "rpcSignatureProbes": {
+      "reserve_organization_quota": {
+        "http": 404,
+        "code": "PGRST202",
+        "hint": null,
+        "message": "Could not find the function public.reserve_organization_quota(__d1b1a_nonexistent_probe_param) in the schema cache"
+      },
+      "release_organization_quota": {
+        "http": 404,
+        "code": "PGRST202",
+        "hint": null,
+        "message": "Could not find the function public.release_organization_quota(__d1b1a_nonexistent_probe_param) in the schema cache"
+      },
+      "settle_organization_quota": {
+        "http": 404,
+        "code": "PGRST202",
+        "hint": null,
+        "message": "Could not find the function public.settle_organization_quota(__d1b1a_nonexistent_probe_param) in the schema cache"
+      }
+    },
+    "inventory": {
+      "alphaOwner": {
+        "organizations": 2,
+        "organization_members": 3,
+        "profiles": 11,
+        "meetings": 2,
+        "media_assets": 0,
+        "transcripts": null,
+        "transcript_segments": 0,
+        "processing_jobs": 0,
+        "subscriptions": 1,
+        "plans": 5,
+        "invoices": 3,
+        "invoice_lines": 0,
+        "usage_ledger": 0,
+        "organization_quota_reserves": 0,
+        "financial_ledger_entries": 0,
+        "audit_logs": 6
+      },
+      "betaOwner": {
+        "organizations": 1,
+        "organization_members": 1,
+        "profiles": 11,
+        "meetings": 2,
+        "media_assets": 0,
+        "transcripts": null,
+        "transcript_segments": 0,
+        "processing_jobs": 0,
+        "subscriptions": 0,
+        "plans": 5,
+        "invoices": 0,
+        "invoice_lines": 0,
+        "usage_ledger": 0,
+        "organization_quota_reserves": 0,
+        "financial_ledger_entries": 0,
+        "audit_logs": 0
+      },
+      "externalUser": {
+        "organizations": 0,
+        "organization_members": 0,
+        "profiles": 11,
+        "meetings": 0,
+        "media_assets": 0,
+        "transcripts": null,
+        "transcript_segments": 0,
+        "processing_jobs": 0,
+        "subscriptions": 0,
+        "plans": 5,
+        "invoices": 0,
+        "invoice_lines": 0,
+        "usage_ledger": 0,
+        "organization_quota_reserves": 0,
+        "financial_ledger_entries": 0,
+        "audit_logs": 0
+      }
+    },
+    "finRec01": {
+      "subscriptions": [
+        {
+          "id": "95034a46-8e5a-45dc-bf25-520009a48be2",
+          "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+          "plan_id": "225311b5-734e-495c-9c6c-a186b8375dcb",
+          "status": "active",
+          "current_period_start": "2026-11-06T08:17:57.116543+00:00",
+          "current_period_end": "2099-12-31T23:59:59+00:00",
+          "cancel_at_period_end": false,
+          "created_at": "2026-11-06T06:10:36.278933+00:00",
+          "updated_at": "2026-11-06T11:55:33.023092+00:00"
+        }
+      ],
+      "plans": [
+        {
+          "id": "ec6ea177-e266-49a7-bb74-b1c03a687fda",
+          "code": "free",
+          "name": "Free Plan"
+        },
+        {
+          "id": "7efb48a1-3ce8-4a67-9bfd-6ec33887ee91",
+          "code": "pro",
+          "name": "Pro Plan"
+        },
+        {
+          "id": "9c8d88df-1bce-4880-89fd-49d8dd73121e",
+          "code": "business",
+          "name": "Business Plan"
+        },
+        {
+          "id": "225311b5-734e-495c-9c6c-a186b8375dcb",
+          "code": "enterprise",
+          "name": "Enterprise Plan"
+        },
+        {
+          "id": "d9393bca-9d74-443c-9840-b0fae90e18b5",
+          "code": "starter",
+          "name": "Starter Plan"
+        }
+      ],
+      "alphaQuotaReserves": [],
+      "alphaUsageLedger": [],
+      "alphaInvoices": [
+        {
+          "id": "4e120eb7-6cac-471a-9843-6081e1f4b428",
+          "invoice_number": "INV-D1A-1793945667712",
+          "status": "issued",
+          "total_cents": 1900,
+          "created_at": "2026-11-06T06:14:24.713239+00:00"
+        },
+        {
+          "id": "03574cfe-915c-4a2c-bcc2-c6dead16c3b8",
+          "invoice_number": "INV-D1A-1793945438018",
+          "status": "issued",
+          "total_cents": 1900,
+          "created_at": "2026-11-06T06:10:35.009314+00:00"
+        },
+        {
+          "id": "1486628d-722b-47a1-947a-832e8877a590",
+          "invoice_number": "INV-D1A-1793945607053",
+          "status": "issued",
+          "total_cents": 1900,
+          "created_at": "2026-11-06T06:13:24.04368+00:00"
+        }
+      ]
+    },
+    "crossTenantRead": {
+      "betaOwnerSeesAlphaSubscriptions": 0,
+      "externalSeesAlphaQuotaReserves": 0
+    },
+    "orgIds": {
+      "alphaOrgId": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+      "betaOrgId": "0203a089-f117-479b-a2e4-b090ee904e68"
+    }
+  }
+}
