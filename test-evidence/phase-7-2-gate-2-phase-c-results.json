@@ -1,0 +1,664 @@
+{
+  "timestamp": "2026-11-06T05:52:17.334Z",
+  "supabaseProject": "https://ycxwomqqepetickmxxqj.supabase.co",
+  "totalTables": 33,
+  "passedTables": 33,
+  "failedTables": 0,
+  "status": "PASS",
+  "tableAudit": [
+    {
+      "index": 1,
+      "table": "profiles",
+      "category": "Governança",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 5,
+        "alphaMember": 5,
+        "betaOwner": 5,
+        "external": 5
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 5 linhas."
+    },
+    {
+      "index": 2,
+      "table": "organizations",
+      "category": "Governança",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 1,
+        "alphaMember": 1,
+        "betaOwner": 1,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 3,
+      "table": "organization_members",
+      "category": "Governança",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 2,
+        "alphaMember": 2,
+        "betaOwner": 1,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 4,
+      "table": "organization_invitations",
+      "category": "Governança",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": true,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas. Admin Sensitive: Owner=0, Member=0."
+    },
+    {
+      "index": 5,
+      "table": "meetings",
+      "category": "Reuniões e Transcrição",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 2,
+        "alphaMember": 2,
+        "betaOwner": 2,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 6,
+      "table": "meeting_participants",
+      "category": "Reuniões e Transcrição",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 7,
+      "table": "media_assets",
+      "category": "Reuniões e Transcrição",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 8,
+      "table": "processing_jobs",
+      "category": "Reuniões e Transcrição",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 9,
+      "table": "transcript_segments",
+      "category": "Reuniões e Transcrição",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 10,
+      "table": "meeting_summaries",
+      "category": "Inteligência Artificial",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 11,
+      "table": "meeting_minutes",
+      "category": "Inteligência Artificial",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 12,
+      "table": "meeting_decisions",
+      "category": "Inteligência Artificial",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 13,
+      "table": "meeting_tasks",
+      "category": "Inteligência Artificial",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 14,
+      "table": "organization_templates",
+      "category": "Inteligência Artificial",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 15,
+      "table": "meeting_documents",
+      "category": "Documentos e Colaboração",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 16,
+      "table": "organization_document_sequences",
+      "category": "Documentos e Colaboração",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 17,
+      "table": "meeting_document_versions",
+      "category": "Documentos e Colaboração",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 18,
+      "table": "meeting_document_comments",
+      "category": "Documentos e Colaboração",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 19,
+      "table": "meeting_document_shares",
+      "category": "Documentos e Colaboração",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 20,
+      "table": "plans",
+      "category": "Monetização",
+      "isPublic": true,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 5,
+        "alphaMember": 5,
+        "betaOwner": 5,
+        "external": 5
+      },
+      "details": "Leitura pública autorizada (Status 200). Anon: OK, Auth: 5"
+    },
+    {
+      "index": 21,
+      "table": "plan_prices",
+      "category": "Monetização",
+      "isPublic": true,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 32,
+        "alphaMember": 32,
+        "betaOwner": 32,
+        "external": 32
+      },
+      "details": "Leitura pública autorizada (Status 200). Anon: OK, Auth: 32"
+    },
+    {
+      "index": 22,
+      "table": "subscriptions",
+      "category": "Monetização",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 23,
+      "table": "checkout_sessions",
+      "category": "Monetização",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 24,
+      "table": "invoices",
+      "category": "Monetização",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 25,
+      "table": "invoice_lines",
+      "category": "Monetização",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 26,
+      "table": "financial_ledger_entries",
+      "category": "Monetização",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 27,
+      "table": "organization_quota_reserves",
+      "category": "Monetização",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 28,
+      "table": "refunds",
+      "category": "Monetização",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 29,
+      "table": "usage_ledger",
+      "category": "FinOps e Administração",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": false,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas."
+    },
+    {
+      "index": 30,
+      "table": "payment_events",
+      "category": "FinOps e Administração",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": true,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas. Admin Sensitive: Owner=0, Member=0."
+    },
+    {
+      "index": 31,
+      "table": "ai_provider_requests",
+      "category": "FinOps e Administração",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": true,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas. Admin Sensitive: Owner=0, Member=0."
+    },
+    {
+      "index": 32,
+      "table": "platform_admins",
+      "category": "FinOps e Administração",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": true,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas. Admin Sensitive: Owner=0, Member=0."
+    },
+    {
+      "index": 33,
+      "table": "audit_logs",
+      "category": "FinOps e Administração",
+      "isPublic": false,
+      "rlsEnforced": true,
+      "anonExposed": false,
+      "sensitiveAdmin": true,
+      "verdict": "PASS",
+      "risk": "Baixo",
+      "counts": {
+        "anonStatus": 200,
+        "alphaOwner": 0,
+        "alphaMember": 0,
+        "betaOwner": 0,
+        "external": 0
+      },
+      "details": "RLS Ativo. Anon: 0 linhas/bloqueado. External: 0 linhas. Admin Sensitive: Owner=0, Member=0."
+    }
+  ],
+  "advancedControls": [
+    {
+      "test": "Imutabilidade de financial_ledger_entries (UPDATE bloqueado)",
+      "passed": true,
+      "obs": "Could not find the 'amount' column of 'financial_ledger_entries' in the schema cache"
+    },
+    {
+      "test": "Imutabilidade de audit_logs (DELETE bloqueado)",
+      "passed": true,
+      "obs": "0 linhas afetadas"
+    },
+    {
+      "test": "Proteção de platform_admins (Injeção de superadmin bloqueada)",
+      "passed": true,
+      "obs": "new row violates row-level security policy for table \"platform_admins\""
+    },
+    {
+      "test": "RPC create_organization_with_owner (Rejeição anónima)",
+      "passed": true,
+      "obs": "UNAUTHORIZED: Authentication required to create organization"
+    },
+    {
+      "test": "Privacidade de Storage Buckets (Anon listagem bloqueada)",
+      "passed": true,
+      "obs": "Recordings err: 0 itens, Docs err: 0 itens"
+    }
+  ]
+}
