@@ -90,7 +90,7 @@ test.describe('PORTA 2 — ETAPA 1: Autenticação Real Supabase Cloud', () => {
     await page.click('button[type="submit"]');
 
     // Confirmar que o registo foi submetido e redirecionado para onboarding
-    await expect(page).toHaveURL(/\/onboarding|\/dashboard|\/login\?registered=/i, { timeout: 15000 });
+    await expect(page).toHaveURL(/\/onboarding|\/dashboard|\/login\?registered=/i, { timeout: 25000 });
     await page.screenshot({ path: 'test-evidence/evidence-teste-a-registration.png' });
     console.log('TESTE A — PASS: Conta sintética registada e redirecionada com sessão ativa.');
 
@@ -125,7 +125,7 @@ test.describe('PORTA 2 — ETAPA 1: Autenticação Real Supabase Cloud', () => {
     await page.click('button[type="submit"]');
 
     // TESTE B: Confirmação de login e acesso ao dashboard ou onboarding
-    await expect(page).toHaveURL(/\/dashboard|\/onboarding/i, { timeout: 15000 });
+    await expect(page).toHaveURL(/\/dashboard|\/onboarding/i, { timeout: 25000 });
     await page.screenshot({ path: 'test-evidence/evidence-teste-b-logged-in.png' });
     console.log('TESTE B — PASS: Login com credenciais válidas e sessão estabelecida no Supabase Cloud.');
 

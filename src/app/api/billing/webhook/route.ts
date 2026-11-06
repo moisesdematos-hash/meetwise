@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { AppError } from '@/lib/errors/app-error';
 import { WebhookService } from '@/modules/billing/webhook-service';
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = createAdminClient();
     const webhookService = new WebhookService(supabase);
 
     const result = await webhookService.processWebhookEvent({
