@@ -1,0 +1,111 @@
+{
+  "timestamp": "2026-11-06T20:57:18.251Z",
+  "project": "ycxwomqqepetickmxxqj",
+  "mode": "POST_RECONCILIATION_VALIDATION",
+  "summary": {
+    "total": 14,
+    "passed": 14,
+    "failed": 0,
+    "allPassed": true
+  },
+  "results": [
+    {
+      "id": 1,
+      "category": "FIN-REC-01",
+      "name": "Subscrição Alpha restaurada para o plano Free",
+      "passed": true,
+      "details": "plan_code=free, plan_id=ec6ea177-e266-49a7-bb74-b1c03a687fda"
+    },
+    {
+      "id": 2,
+      "category": "FIN-REC-01",
+      "name": "Vigência legítima de referência restaurada (2026-12-06)",
+      "passed": true,
+      "details": "period_end=2026-12-06T06:14:27+00:00"
+    },
+    {
+      "id": 3,
+      "category": "FIN-REC-01",
+      "name": "Direitos comerciais Enterprise anulados (minutos de plano reduzidos)",
+      "passed": true,
+      "details": "monthly_minutes_included=45"
+    },
+    {
+      "id": 4,
+      "category": "INTEGRITY",
+      "name": "Faturas sintéticas e histórico de pagamentos preservados",
+      "passed": true,
+      "details": "count=3"
+    },
+    {
+      "id": 5,
+      "category": "FORENSIC",
+      "name": "Evento de auditoria compensatório security.subscription_reconciled gravado",
+      "passed": true,
+      "details": "entries_found=1"
+    },
+    {
+      "id": 6,
+      "category": "QUOTA",
+      "name": "Bloqueio de reserva acima da quota Free (Quota Exceeded)",
+      "passed": true,
+      "details": "Quota Exceeded: Requested 500 minutes, but only 25.00 remain in active cycle (limit: 45, used: 20.00)."
+    },
+    {
+      "id": 7,
+      "category": "ISOLATION",
+      "name": "Organização Beta estritamente inalterada",
+      "passed": true,
+      "details": "beta_subscriptions=0"
+    },
+    {
+      "id": 8,
+      "category": "INTEGRITY",
+      "name": "Usage ledger histórico preservado sem deleções",
+      "passed": true,
+      "details": "records_count=2"
+    },
+    {
+      "id": 9,
+      "category": "SECURITY",
+      "name": "Alpha Owner impedido de promover o próprio plano diretamente",
+      "passed": true,
+      "details": "Security Violation: Direct modification of subscription plan is prohibited. Use checkout."
+    },
+    {
+      "id": 10,
+      "category": "SECURITY",
+      "name": "Alpha Member impedido de alterar subscrição (RLS update_owner)",
+      "passed": true,
+      "details": "Bloqueado por RLS"
+    },
+    {
+      "id": 11,
+      "category": "SECURITY",
+      "name": "Beta Owner bloqueado de alterar subscrição de Alpha (Isolamento Cross-Tenant)",
+      "passed": true,
+      "details": "Bloqueado por RLS"
+    },
+    {
+      "id": 12,
+      "category": "SECURITY",
+      "name": "External User bloqueado de alterar subscrição de Alpha",
+      "passed": true,
+      "details": "Bloqueado por RLS"
+    },
+    {
+      "id": 13,
+      "category": "SECURITY",
+      "name": "Utilizador anónimo impedido de modificar subscrição",
+      "passed": true,
+      "details": "Bloqueado por RLS"
+    },
+    {
+      "id": 14,
+      "category": "SECURITY",
+      "name": "Tentativa de adulteração de fatura permanece estritamente bloqueada",
+      "passed": true,
+      "details": "Security Violation: Direct modification of invoice status is prohibited."
+    }
+  ]
+}

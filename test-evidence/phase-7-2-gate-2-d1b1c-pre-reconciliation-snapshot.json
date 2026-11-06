@@ -1,0 +1,302 @@
+{
+  "timestamp": "2026-11-06T20:51:42.190Z",
+  "project": "ycxwomqqepetickmxxqj",
+  "mode": "PRE_RECONCILIATION_FINANCIAL_SNAPSHOT",
+  "alphaOrgId": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+  "betaOrgId": "0203a089-f117-479b-a2e4-b090ee904e68",
+  "alpha": {
+    "subscriptions": [
+      {
+        "id": "95034a46-8e5a-45dc-bf25-520009a48be2",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "plan_id": "225311b5-734e-495c-9c6c-a186b8375dcb",
+        "status": "active",
+        "current_period_start": "2026-11-06T08:17:57.116543+00:00",
+        "current_period_end": "2099-12-31T23:59:59+00:00",
+        "cancel_at_period_end": false,
+        "created_at": "2026-11-06T06:10:36.278933+00:00",
+        "updated_at": "2026-11-06T11:55:33.023092+00:00",
+        "plan_price_id": null,
+        "currency": "USD",
+        "billing_interval": "monthly",
+        "grace_period_ends_at": null,
+        "suspended_at": null,
+        "suspended_reason": null,
+        "cancelled_at": null,
+        "cancellation_reason": null,
+        "external_subscription_id": null,
+        "provider": "mock"
+      }
+    ],
+    "quotaReserves": [
+      {
+        "id": "86a2993b-ad5b-42ec-909c-cbf47dd2cc87",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "operation": "transcription_minutes",
+        "reserved_quantity": 5,
+        "unit": "minutes",
+        "idempotency_key": "d1b1b_anon_1793997223737",
+        "status": "active",
+        "expires_at": "2026-11-06T21:33:46.160819+00:00",
+        "created_at": "2026-11-06T20:33:46.160819+00:00"
+      },
+      {
+        "id": "b7d69a35-6c86-42f0-9558-2d92a7757883",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "operation": "transcription_minutes",
+        "reserved_quantity": 5,
+        "unit": "minutes",
+        "idempotency_key": "probe_anon",
+        "status": "active",
+        "expires_at": "2026-11-06T21:34:09.828463+00:00",
+        "created_at": "2026-11-06T20:34:09.828463+00:00"
+      },
+      {
+        "id": "7b2c2c8b-5a36-4491-a55f-4ed01b5bbd0d",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "operation": "transcription_minutes",
+        "reserved_quantity": 10,
+        "unit": "minutes",
+        "idempotency_key": "d1b1b_test_reserve_1793997223737_1",
+        "status": "released",
+        "expires_at": "2026-11-06T20:38:44.037237+00:00",
+        "created_at": "2026-11-06T20:33:44.037237+00:00"
+      },
+      {
+        "id": "81474586-6280-4444-9b2b-0cb940177eed",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "operation": "transcription_minutes",
+        "reserved_quantity": 10,
+        "unit": "minutes",
+        "idempotency_key": "d1b1b_test_reserve_1793997534063_1",
+        "status": "released",
+        "expires_at": "2026-11-06T20:43:54.38179+00:00",
+        "created_at": "2026-11-06T20:38:54.38179+00:00"
+      },
+      {
+        "id": "612d00d9-9836-469c-8bb4-34c0a59e60f8",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "operation": "transcription_minutes",
+        "reserved_quantity": 5,
+        "unit": "minutes",
+        "idempotency_key": "d1b1b_test_reserve_1793997223737_2",
+        "status": "settled",
+        "expires_at": "2026-11-06T20:38:45.002568+00:00",
+        "created_at": "2026-11-06T20:33:45.002568+00:00"
+      },
+      {
+        "id": "99781fbe-ca4c-4a16-81a5-3047cacf62ae",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "operation": "transcription_minutes",
+        "reserved_quantity": 5,
+        "unit": "minutes",
+        "idempotency_key": "d1b1b_test_reserve_1793997534063_2",
+        "status": "settled",
+        "expires_at": "2026-11-06T20:43:55.299548+00:00",
+        "created_at": "2026-11-06T20:38:55.299548+00:00"
+      }
+    ],
+    "usageLedger": [
+      {
+        "id": "65eda731-d547-4d84-bb61-f3ef180d04bf",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "meeting_id": null,
+        "operation": "transcription_minutes",
+        "quantity": 5,
+        "unit": "minutes",
+        "cost_cents_usd": 13,
+        "idempotency_key": "settle_d1b1b_test_reserve_1793997223737_2",
+        "status": "settled",
+        "metadata": {},
+        "created_at": "2026-11-06T20:33:45.232454+00:00",
+        "updated_at": "2026-11-06T20:33:45.463902+00:00"
+      },
+      {
+        "id": "9e6349aa-ab18-43a8-bfab-427e0d261df7",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "meeting_id": null,
+        "operation": "transcription_minutes",
+        "quantity": 5,
+        "unit": "minutes",
+        "cost_cents_usd": 13,
+        "idempotency_key": "settle_d1b1b_test_reserve_1793997534063_2",
+        "status": "settled",
+        "metadata": {},
+        "created_at": "2026-11-06T20:38:55.529875+00:00",
+        "updated_at": "2026-11-06T20:38:55.792957+00:00"
+      }
+    ],
+    "invoices": [
+      {
+        "id": "4e120eb7-6cac-471a-9843-6081e1f4b428",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "subscription_id": null,
+        "invoice_number": "INV-D1A-1793945667712",
+        "currency": "USD",
+        "subtotal_cents": 1900,
+        "tax_cents": 0,
+        "total_cents": 1900,
+        "status": "issued",
+        "due_date": "2026-12-06T06:14:27.712+00:00",
+        "paid_at": null,
+        "payment_reference": null,
+        "billing_details": {
+          "test": "D1.A.1 synthetic invoice",
+          "reconciliation": {
+            "phase": "D1.C.2",
+            "status": "reverted_to_issued",
+            "timestamp": "2026-11-06T09:00:00Z"
+          }
+        },
+        "pdf_url": null,
+        "created_at": "2026-11-06T06:14:24.713239+00:00"
+      },
+      {
+        "id": "03574cfe-915c-4a2c-bcc2-c6dead16c3b8",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "subscription_id": null,
+        "invoice_number": "INV-D1A-1793945438018",
+        "currency": "USD",
+        "subtotal_cents": 1900,
+        "tax_cents": 0,
+        "total_cents": 1900,
+        "status": "issued",
+        "due_date": "2026-12-06T06:10:38.018+00:00",
+        "paid_at": null,
+        "payment_reference": null,
+        "billing_details": {
+          "test": "D1.A.1 synthetic invoice",
+          "reconciliation": {
+            "phase": "D1.C.2",
+            "status": "reverted_to_issued",
+            "timestamp": "2026-11-06T09:00:00Z"
+          }
+        },
+        "pdf_url": null,
+        "created_at": "2026-11-06T06:10:35.009314+00:00"
+      },
+      {
+        "id": "1486628d-722b-47a1-947a-832e8877a590",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "subscription_id": null,
+        "invoice_number": "INV-D1A-1793945607053",
+        "currency": "USD",
+        "subtotal_cents": 1900,
+        "tax_cents": 0,
+        "total_cents": 1900,
+        "status": "issued",
+        "due_date": "2026-12-06T06:13:27.053+00:00",
+        "paid_at": null,
+        "payment_reference": null,
+        "billing_details": {
+          "test": "D1.A.1 synthetic invoice",
+          "reconciliation": {
+            "phase": "D1.C.2",
+            "status": "reverted_to_issued",
+            "timestamp": "2026-11-06T09:00:00Z"
+          }
+        },
+        "pdf_url": null,
+        "created_at": "2026-11-06T06:13:24.04368+00:00"
+      }
+    ],
+    "financialLedgerEntries": [],
+    "auditLogs": [
+      {
+        "id": "aabc58c0-744f-4b06-86bf-970d68eb9fba",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "user_id": "ebf825cf-915c-4d75-8fbb-912048062b49",
+        "action": "meeting.document_viewed",
+        "resource_type": "document",
+        "resource_id": null,
+        "metadata": {
+          "nonce": "legit-1793966135083",
+          "meeting_id": "legitimate-meeting-id"
+        },
+        "ip_address": null,
+        "created_at": "2026-11-06T11:55:35.233866+00:00"
+      },
+      {
+        "id": "fd1e87ee-9d8c-49af-888e-028fc9c8b131",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "user_id": "ebf825cf-915c-4d75-8fbb-912048062b49",
+        "action": "document.viewed",
+        "resource_type": "document",
+        "resource_id": null,
+        "metadata": {
+          "test": "12",
+          "nonce": "spoof-time-1793966133597"
+        },
+        "ip_address": null,
+        "created_at": "2026-11-06T11:55:33.757082+00:00"
+      },
+      {
+        "id": "c45554a9-6e33-47d9-aa12-297c405acaa3",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "user_id": "ebf825cf-915c-4d75-8fbb-912048062b49",
+        "action": "document.viewed",
+        "resource_type": "document",
+        "resource_id": null,
+        "metadata": {
+          "test": "11",
+          "nonce": "spoof-user-1793966133106"
+        },
+        "ip_address": null,
+        "created_at": "2026-11-06T11:55:33.259134+00:00"
+      },
+      {
+        "id": "fd7ed5ab-8092-443d-a21e-cfc67b0322fd",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "user_id": null,
+        "action": "security.reconciliation_applied",
+        "resource_type": "reconciliation",
+        "resource_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "metadata": {
+          "phase": "D1.C.2",
+          "timestamp": "2026-11-06T08:17:57.116543+00:00",
+          "invoices_reconciled": 3,
+          "audit_evidence_preserved": true,
+          "remediated_vulnerabilities": [
+            "VULN-001",
+            "VULN-002",
+            "VULN-003"
+          ],
+          "subscription_plan_restored": "free"
+        },
+        "ip_address": null,
+        "created_at": "2026-11-06T08:17:57.116543+00:00"
+      },
+      {
+        "id": "cc44ea11-8804-458d-80fa-18fd0ed7ecda",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "user_id": "bf83fb78-99dd-41f8-b2ce-b4555be1c176",
+        "action": "admin.organization.ownership_transferred_synthetic_forged",
+        "resource_type": "organization",
+        "resource_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "metadata": {},
+        "ip_address": null,
+        "created_at": "2020-01-01T00:00:00+00:00"
+      },
+      {
+        "id": "8f9e8457-2ef6-4b95-82a7-96cad6cce4b9",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "user_id": "bf83fb78-99dd-41f8-b2ce-b4555be1c176",
+        "action": "admin.organization.ownership_transferred_synthetic_1793945670262",
+        "resource_type": "organization",
+        "resource_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "metadata": {
+          "forged": true,
+          "attack_vector": "D1.A.3 identity and timestamp spoofing"
+        },
+        "ip_address": "198.51.100.1",
+        "created_at": "2020-01-01T00:00:00+00:00"
+      }
+    ]
+  },
+  "beta": {
+    "subscriptions": [],
+    "quotaReserves": [],
+    "usageLedger": [],
+    "invoices": []
+  }
+}
