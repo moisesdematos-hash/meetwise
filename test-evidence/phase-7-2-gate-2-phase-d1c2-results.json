@@ -1,0 +1,144 @@
+{
+  "timestamp": "2026-11-06T11:55:35.566Z",
+  "project": "ycxwomqqepetickmxxqj",
+  "totalTests": 17,
+  "passedTests": 17,
+  "results": [
+    {
+      "id": 1,
+      "category": "invoices",
+      "name": "Alpha Owner tenta alterar status para paid",
+      "passed": true,
+      "error": "Security Violation: Direct modification of invoice status is prohibited."
+    },
+    {
+      "id": 2,
+      "category": "invoices",
+      "name": "Alpha Owner tenta alterar total_cents",
+      "passed": true,
+      "error": "Security Violation: Direct modification of invoice financial amounts is prohibited."
+    },
+    {
+      "id": 3,
+      "category": "invoices",
+      "name": "Alpha Member tenta modificar fatura",
+      "passed": true
+    },
+    {
+      "id": 4,
+      "category": "invoices",
+      "name": "Beta Owner tenta modificar fatura Alpha",
+      "passed": true
+    },
+    {
+      "id": 5,
+      "category": "invoices",
+      "name": "Leitura autorizada de faturas preservada",
+      "passed": true,
+      "data": {
+        "id": "4e120eb7-6cac-471a-9843-6081e1f4b428",
+        "invoice_number": "INV-D1A-1793945667712",
+        "status": "issued",
+        "total_cents": 1900,
+        "billing_details": {
+          "test": "D1.A.1 synthetic invoice",
+          "reconciliation": {
+            "phase": "D1.C.2",
+            "status": "reverted_to_issued",
+            "timestamp": "2026-11-06T09:00:00Z"
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "category": "subscriptions",
+      "name": "Alpha Owner tenta alterar plan_id",
+      "passed": true,
+      "error": "Security Violation: Direct modification of subscription plan is prohibited. Use checkout."
+    },
+    {
+      "id": 7,
+      "category": "subscriptions",
+      "name": "Alpha Owner tenta estender current_period_end",
+      "passed": true,
+      "error": "Security Violation: Direct modification of subscription period dates is prohibited."
+    },
+    {
+      "id": 8,
+      "category": "subscriptions",
+      "name": "Alpha Member tenta upgrade",
+      "passed": true
+    },
+    {
+      "id": 9,
+      "category": "subscriptions",
+      "name": "Beta Owner tenta alterar subscrição Alpha",
+      "passed": true
+    },
+    {
+      "id": 10,
+      "category": "subscriptions",
+      "name": "Cancelamento legítimo permitido",
+      "passed": true
+    },
+    {
+      "id": 11,
+      "category": "audit_logs",
+      "name": "Member tenta falsificar user_id",
+      "passed": true,
+      "sanitizedUser": "ebf825cf-915c-4d75-8fbb-912048062b49"
+    },
+    {
+      "id": 12,
+      "category": "audit_logs",
+      "name": "Member tenta falsificar created_at",
+      "passed": true,
+      "sanitizedTimestamp": "2026-11-06T11:55:33.757082+00:00"
+    },
+    {
+      "id": 13,
+      "category": "audit_logs",
+      "name": "Owner tenta emitir evento billing.%",
+      "passed": true,
+      "error": "Security Violation: Financial and billing audit events cannot be emitted directly by clients."
+    },
+    {
+      "id": 14,
+      "category": "audit_logs",
+      "name": "Admin/Member tenta emitir evento billing.%",
+      "passed": true,
+      "error": "Security Violation: Financial and billing audit events cannot be emitted directly by clients."
+    },
+    {
+      "id": 15,
+      "category": "audit_logs",
+      "name": "UPDATE em audit_logs bloqueado",
+      "passed": true,
+      "error": "Security Violation: Audit logs are strictly immutable and cannot be updated or deleted."
+    },
+    {
+      "id": 16,
+      "category": "audit_logs",
+      "name": "DELETE em audit_logs bloqueado",
+      "passed": true,
+      "error": "Security Violation: Audit logs are strictly immutable and cannot be updated or deleted."
+    },
+    {
+      "id": 17,
+      "category": "audit_logs",
+      "name": "Evento legítimo de membro registado",
+      "passed": true,
+      "data": {
+        "id": "aabc58c0-744f-4b06-86bf-970d68eb9fba",
+        "user_id": "ebf825cf-915c-4d75-8fbb-912048062b49",
+        "action": "meeting.document_viewed",
+        "created_at": "2026-11-06T11:55:35.233866+00:00",
+        "metadata": {
+          "nonce": "legit-1793966135083",
+          "meeting_id": "legitimate-meeting-id"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "step": "ETAPA 0 & ETAPA 2 - PRE-FLIGHT & BACKUP",
+  "timestamp": "2026-11-06T08:03:11.061Z",
+  "checks": {
+    "targetProject": {
+      "status": "PASS",
+      "project": "ycxwomqqepetickmxxqj",
+      "url": "https://ycxwomqqepetickmxxqj.supabase.co"
+    },
+    "gitCommit": {
+      "status": "PASS",
+      "head": "6a3b4c54a4d1ddcfb208404298d942d9de76fcad",
+      "statusOutput": "M tsconfig.tsbuildinfo\n?? scripts/execute-phase-d1c2-preflight-and-backup.mjs"
+    },
+    "migrationHash": {
+      "status": "PASS",
+      "hash": "BB7CC9A233B602691EC19DD252E9BEE785F2A28928044F2705271AD725340210"
+    },
+    "authSessions": {
+      "status": "PASS",
+      "accounts": 4
+    },
+    "noRealCustomerData": {
+      "status": "PASS",
+      "invoicesCount": 3,
+      "subscriptionsCount": 1
+    }
+  },
+  "backup": {
+    "status": "PASS",
+    "file": "C:\\Users\\HP\\Downloads\\MEETWISE AI\\test-evidence\\phase-7-2-gate-2-d1c2-pre-migration-backup.json",
+    "snapshotTime": "2026-11-06T08:03:15.695Z"
+  },
+  "goNoGo": "GO",
+  "recoveryPlan": {
+    "status": "PASS",
+    "file": "C:\\Users\\HP\\Downloads\\MEETWISE AI\\test-evidence\\phase-7-2-gate-2-d1c2-recovery-plan.sql"
+  }
+}

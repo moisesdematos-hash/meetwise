@@ -107,6 +107,15 @@ describe('MEETWISE AI — Phase 7.2 Migration 009 Security Audit & Regression Su
         SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::UUID;
       $$;
 
+      CREATE OR REPLACE FUNCTION auth.role()
+      RETURNS TEXT
+      LANGUAGE sql STABLE AS $$
+        SELECT COALESCE(
+          NULLIF(current_setting('request.jwt.claim.role', true), ''),
+          current_user
+        )::TEXT;
+      $$;
+
       CREATE TABLE IF NOT EXISTS storage.buckets (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,

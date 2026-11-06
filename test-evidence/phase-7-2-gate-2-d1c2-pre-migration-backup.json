@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-11-06T08:03:15.695Z",
+  "project": "ycxwomqqepetickmxxqj",
+  "organizations": {
+    "alpha": {
+      "id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+      "name": "Organização Alpha Staging"
+    },
+    "beta": {
+      "id": "0203a089-f117-479b-a2e4-b090ee904e68",
+      "name": "Organização Beta Staging"
+    }
+  },
+  "invoices": {
+    "alpha": [
+      {
+        "id": "03574cfe-915c-4a2c-bcc2-c6dead16c3b8",
+        "invoice_number": "INV-D1A-1793945438018",
+        "status": "paid",
+        "total_cents": 0,
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "created_at": "2026-11-06T06:10:35.009314+00:00"
+      },
+      {
+        "id": "1486628d-722b-47a1-947a-832e8877a590",
+        "invoice_number": "INV-D1A-1793945607053",
+        "status": "paid",
+        "total_cents": 0,
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "created_at": "2026-11-06T06:13:24.04368+00:00"
+      },
+      {
+        "id": "4e120eb7-6cac-471a-9843-6081e1f4b428",
+        "invoice_number": "INV-D1A-1793945667712",
+        "status": "paid",
+        "total_cents": 0,
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "created_at": "2026-11-06T06:14:24.713239+00:00"
+      }
+    ],
+    "beta": []
+  },
+  "subscriptions": {
+    "alpha": [
+      {
+        "id": "95034a46-8e5a-45dc-bf25-520009a48be2",
+        "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+        "plan_id": "225311b5-734e-495c-9c6c-a186b8375dcb",
+        "status": "active",
+        "current_period_end": "2099-12-31T23:59:59+00:00",
+        "cancel_at_period_end": false
+      }
+    ],
+    "beta": []
+  },
+  "auditLogsSample": {
+    "alpha": null
+  }
+}

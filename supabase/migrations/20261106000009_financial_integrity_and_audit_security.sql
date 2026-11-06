@@ -23,9 +23,19 @@ CREATE OR REPLACE FUNCTION public.protect_invoice_financial_fields()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = public, pg_temp AS $$
+DECLARE
+  v_role TEXT;
 BEGIN
+  v_role := COALESCE(
+    NULLIF(current_setting('request.jwt.claim.role', true), ''),
+    (CASE WHEN NULLIF(current_setting('request.jwt.claims', true), '') IS NOT NULL 
+          THEN (current_setting('request.jwt.claims', true)::jsonb ->> 'role') 
+          ELSE NULL END),
+    current_user
+  );
+
   -- Se a operação é executada por um utilizador autenticado (não service_role/backend)
-  IF NULLIF(current_setting('request.jwt.claim.role', true), '') = 'authenticated' THEN
+  IF (v_role = 'authenticated' OR auth.uid() IS NOT NULL) AND v_role NOT IN ('service_role', 'postgres') THEN
     -- Proibir alteração de status financeiro
     IF NEW.status IS DISTINCT FROM OLD.status THEN
       RAISE EXCEPTION 'Security Violation: Direct modification of invoice status is prohibited.';
@@ -73,9 +83,19 @@ CREATE OR REPLACE FUNCTION public.protect_subscription_financial_fields()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = public, pg_temp AS $$
+DECLARE
+  v_role TEXT;
 BEGIN
+  v_role := COALESCE(
+    NULLIF(current_setting('request.jwt.claim.role', true), ''),
+    (CASE WHEN NULLIF(current_setting('request.jwt.claims', true), '') IS NOT NULL 
+          THEN (current_setting('request.jwt.claims', true)::jsonb ->> 'role') 
+          ELSE NULL END),
+    current_user
+  );
+
   -- Se a operação é executada por utilizador comum autenticado
-  IF NULLIF(current_setting('request.jwt.claim.role', true), '') = 'authenticated' THEN
+  IF (v_role = 'authenticated' OR auth.uid() IS NOT NULL) AND v_role NOT IN ('service_role', 'postgres') THEN
     -- Proibir alteração de plano contratado (upgrade forçado)
     IF NEW.plan_id IS DISTINCT FROM OLD.plan_id THEN
       RAISE EXCEPTION 'Security Violation: Direct modification of subscription plan is prohibited. Use checkout.';
@@ -140,14 +160,23 @@ LANGUAGE plpgsql
 SET search_path = public, pg_temp AS $$
 DECLARE
   v_role TEXT;
+  v_user_role TEXT;
 BEGIN
   -- Imutabilidade estrita: Proibir UPDATE e DELETE absolutamente
   IF TG_OP = 'UPDATE' OR TG_OP = 'DELETE' THEN
     RAISE EXCEPTION 'Security Violation: Audit logs are strictly immutable and cannot be updated or deleted.';
   END IF;
 
+  v_role := COALESCE(
+    NULLIF(current_setting('request.jwt.claim.role', true), ''),
+    (CASE WHEN NULLIF(current_setting('request.jwt.claims', true), '') IS NOT NULL 
+          THEN (current_setting('request.jwt.claims', true)::jsonb ->> 'role') 
+          ELSE NULL END),
+    current_user
+  );
+
   -- Se inserido por utilizador autenticado
-  IF NULLIF(current_setting('request.jwt.claim.role', true), '') = 'authenticated' THEN
+  IF (v_role = 'authenticated' OR auth.uid() IS NOT NULL) AND v_role NOT IN ('service_role', 'postgres') THEN
     -- 1. Forçar autoria real server-side (elimina falsificação de user_id)
     NEW.user_id := auth.uid();
 
@@ -161,11 +190,11 @@ BEGIN
 
     -- 4. Proteger eventos administrativos contra falsificação por membros comuns
     IF (NEW.action LIKE 'admin.%' OR NEW.action LIKE 'security.%') THEN
-      SELECT role INTO v_role
+      SELECT role INTO v_user_role
       FROM public.organization_members
       WHERE organization_id = NEW.organization_id AND user_id = auth.uid() AND status = 'active';
 
-      IF v_role NOT IN ('owner', 'admin') THEN
+      IF v_user_role NOT IN ('owner', 'admin') THEN
         RAISE EXCEPTION 'Security Violation: Standard members cannot emit administrative or security audit events.';
       END IF;
     END IF;
