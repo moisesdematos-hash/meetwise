@@ -91,5 +91,20 @@ BEGIN
 END;
 $$;
 
+-- 3. Restrição e concessão de privilégios de execução
 REVOKE ALL ON FUNCTION public.create_organization_with_owner(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.create_organization_with_owner(TEXT, TEXT, TEXT, TEXT) TO authenticated, service_role;
+
+-- 4. Registo no histórico nativo de migrações (se a tabela existir)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'supabase_migrations' 
+      AND table_name = 'schema_migrations'
+  ) THEN
+    INSERT INTO supabase_migrations.schema_migrations (version, name)
+    VALUES ('20261106000008', '20261106000008_profiles_insert_and_onboarding_fix')
+    ON CONFLICT (version) DO UPDATE SET name = EXCLUDED.name;
+  END IF;
+END $$;

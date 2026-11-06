@@ -1,0 +1,45 @@
+{
+  "timestamp": 1793940544881,
+  "createdAt": "2026-11-06T04:49:04.879Z",
+  "supabaseProject": "https://ycxwomqqepetickmxxqj.supabase.co",
+  "organizations": {
+    "alpha": {
+      "id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+      "name": "Organização Alpha Staging",
+      "slug": "org-alpha-1793942205447"
+    },
+    "beta": {
+      "id": "0203a089-f117-479b-a2e4-b090ee904e68",
+      "name": "Organização Beta Staging",
+      "slug": "org-beta-1793942206376"
+    }
+  },
+  "users": {
+    "alphaOwner": {
+      "id": "bf83fb78-99dd-41f8-b2ce-b4555be1c176",
+      "email": "synth_alpha_owner_1793940544881@meetwise.ai",
+      "password": "MeetWiseSynth_1793940544881!Pass2026",
+      "role": "owner"
+    },
+    "alphaMember": {
+      "id": "ebf825cf-915c-4d75-8fbb-912048062b49",
+      "email": "synth_alpha_member_1793940544881@meetwise.ai",
+      "password": "MeetWiseSynth_1793940544881!Pass2026",
+      "role": "member"
+    },
+    "betaOwner": {
+      "id": "ff1f55ea-5939-4d1d-8629-2c35d9ad9480",
+      "email": "synth_beta_owner_1793940544881@meetwise.ai",
+      "password": "MeetWiseSynth_1793940544881!Pass2026",
+      "role": "owner"
+    },
+    "externalUser": {
+      "id": "1e1cf195-19d3-4b5b-afbc-1b23368116a8",
+      "email": "synth_external_user_1793940544881@meetwise.ai",
+      "password": "MeetWiseSynth_1793940544881!Pass2026",
+      "role": null
+    }
+  },
+  "status": "ORGANIZATIONS_PROVISIONED",
+  "updatedAt": "2026-11-06T05:16:47.509Z"
+}
