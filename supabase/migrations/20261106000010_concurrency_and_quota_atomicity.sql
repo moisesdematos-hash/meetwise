@@ -93,7 +93,11 @@ BEGIN
     current_user
   );
 
-  IF (v_role = 'authenticated' OR v_user_id IS NOT NULL) AND v_role NOT IN ('service_role', 'postgres') THEN
+  IF v_role NOT IN ('service_role', 'postgres') THEN
+    IF v_user_id IS NULL THEN
+      RAISE EXCEPTION 'Security Violation: Authentication required.';
+    END IF;
+
     IF NOT EXISTS (
       SELECT 1 FROM public.organization_members
       WHERE organization_id = p_organization_id
@@ -215,6 +219,8 @@ SECURITY DEFINER
 SET search_path = public, auth, pg_temp
 AS $$
 DECLARE
+  v_role TEXT;
+  v_user_id UUID;
   v_res RECORD;
 BEGIN
   SELECT * INTO v_res
@@ -223,6 +229,31 @@ BEGIN
 
   IF NOT FOUND THEN
     RETURN false;
+  END IF;
+
+  -- Verificação de permissões do chamador
+  v_user_id := auth.uid();
+  v_role := COALESCE(
+    NULLIF(current_setting('request.jwt.claim.role', true), ''),
+    (CASE WHEN NULLIF(current_setting('request.jwt.claims', true), '') IS NOT NULL 
+          THEN (current_setting('request.jwt.claims', true)::jsonb ->> 'role') 
+          ELSE NULL END),
+    current_user
+  );
+
+  IF v_role NOT IN ('service_role', 'postgres') THEN
+    IF v_user_id IS NULL THEN
+      RAISE EXCEPTION 'Security Violation: Authentication required.';
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM public.organization_members
+      WHERE organization_id = v_res.organization_id
+        AND user_id = v_user_id
+        AND status = 'active'
+    ) THEN
+      RAISE EXCEPTION 'Security Violation: User is not an active member of this organization.';
+    END IF;
   END IF;
 
   -- Serializa na organização
@@ -254,6 +285,8 @@ SECURITY DEFINER
 SET search_path = public, auth, pg_temp
 AS $$
 DECLARE
+  v_role TEXT;
+  v_user_id UUID;
   v_res RECORD;
   v_new_ledger_id UUID;
   v_settle_key TEXT;
@@ -264,6 +297,31 @@ BEGIN
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Reservation Not Found: ID %', p_reservation_id;
+  END IF;
+
+  -- Verificação de permissões do chamador
+  v_user_id := auth.uid();
+  v_role := COALESCE(
+    NULLIF(current_setting('request.jwt.claim.role', true), ''),
+    (CASE WHEN NULLIF(current_setting('request.jwt.claims', true), '') IS NOT NULL 
+          THEN (current_setting('request.jwt.claims', true)::jsonb ->> 'role') 
+          ELSE NULL END),
+    current_user
+  );
+
+  IF v_role NOT IN ('service_role', 'postgres') THEN
+    IF v_user_id IS NULL THEN
+      RAISE EXCEPTION 'Security Violation: Authentication required.';
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM public.organization_members
+      WHERE organization_id = v_res.organization_id
+        AND user_id = v_user_id
+        AND status = 'active'
+    ) THEN
+      RAISE EXCEPTION 'Security Violation: User is not an active member of this organization.';
+    END IF;
   END IF;
 
   -- Serializa na organização
@@ -311,13 +369,13 @@ $$;
 
 
 -- 5. GRANTS DE EXECUÇÃO DAS RPCS
-REVOKE ALL ON FUNCTION public.reserve_organization_quota(UUID, NUMERIC, TEXT, TEXT, INTEGER) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.reserve_organization_quota(UUID, NUMERIC, TEXT, TEXT, INTEGER) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.reserve_organization_quota(UUID, NUMERIC, TEXT, TEXT, INTEGER) TO authenticated, service_role;
 
-REVOKE ALL ON FUNCTION public.release_organization_quota(UUID, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.release_organization_quota(UUID, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.release_organization_quota(UUID, TEXT) TO authenticated, service_role;
 
-REVOKE ALL ON FUNCTION public.settle_organization_quota(UUID, NUMERIC, UUID, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.settle_organization_quota(UUID, NUMERIC, UUID, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.settle_organization_quota(UUID, NUMERIC, UUID, TEXT) TO authenticated, service_role;
 
 

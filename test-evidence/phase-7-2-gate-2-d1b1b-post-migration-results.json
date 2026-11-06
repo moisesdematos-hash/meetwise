@@ -1,0 +1,132 @@
+{
+  "timestamp": "2026-11-06T20:38:57.829Z",
+  "project": "ycxwomqqepetickmxxqj",
+  "mode": "CONTROLLED_CLOUD_STAGING_VALIDATION",
+  "summary": {
+    "total": 17,
+    "passed": 17,
+    "failed": 0,
+    "allPassed": true
+  },
+  "results": [
+    {
+      "id": 1,
+      "category": "CRIT-RC-01",
+      "name": "Bloqueio de remoção (DELETE) do último Owner",
+      "passed": true,
+      "details": "Security Violation: Cannot remove or demote the last remaining active owner of an organization."
+    },
+    {
+      "id": 2,
+      "category": "CRIT-RC-01",
+      "name": "Bloqueio de despromoção (role=member) do último Owner",
+      "passed": true,
+      "details": "Security Violation: Cannot remove or demote the last remaining active owner of an organization."
+    },
+    {
+      "id": 3,
+      "category": "CRIT-RC-01",
+      "name": "Bloqueio de suspensão (status=suspended) do último Owner",
+      "passed": true,
+      "details": "Security Violation: Cannot remove or demote the last remaining active owner of an organization."
+    },
+    {
+      "id": 4,
+      "category": "CRIT-RC-01",
+      "name": "Integridade e permanência do último Owner ativa confirmada",
+      "passed": true,
+      "details": "role=owner, status=active"
+    },
+    {
+      "id": 5,
+      "category": "CRIT-RC-02",
+      "name": "Reserva transacional atómica legítima de quota",
+      "passed": true,
+      "details": "reservation_id=81474586-6280-4444-9b2b-0cb940177eed, remaining=9975"
+    },
+    {
+      "id": 6,
+      "category": "CRIT-RC-02",
+      "name": "Idempotência estrita na repetição da chave de reserva",
+      "passed": true,
+      "details": "id_match=true"
+    },
+    {
+      "id": 7,
+      "category": "CRIT-RC-02",
+      "name": "Bloqueio estrito de reserva acima do limite (Quota Exceeded)",
+      "passed": true,
+      "details": "Quota Exceeded: Requested 9999999 minutes, but only 9975.00 remain in active cycle (limit: 10000, used: 25.00)."
+    },
+    {
+      "id": 8,
+      "category": "CRIT-RC-02",
+      "name": "Liberação (release) transacional da reserva",
+      "passed": true,
+      "details": "released=true"
+    },
+    {
+      "id": 9,
+      "category": "CRIT-RC-02",
+      "name": "Liquidação (settle) atómica da quota no usage_ledger",
+      "passed": true,
+      "details": "settled=true, ledger_id=9e6349aa-ab18-43a8-bfab-427e0d261df7"
+    },
+    {
+      "id": 10,
+      "category": "CRIT-RC-02",
+      "name": "Idempotência na repetição de liquidação (settle)",
+      "passed": true,
+      "details": "ledger_match=true"
+    },
+    {
+      "id": 11,
+      "category": "SECURITY",
+      "name": "Isolamento cross-tenant: Beta Owner bloqueado em Org Alpha",
+      "passed": true,
+      "details": "Security Violation: User is not an active member of this organization."
+    },
+    {
+      "id": 12,
+      "category": "SECURITY",
+      "name": "Isolamento cross-tenant: External User bloqueado em Org Alpha",
+      "passed": true,
+      "details": "Security Violation: User is not an active member of this organization."
+    },
+    {
+      "id": 13,
+      "category": "SECURITY",
+      "name": "Utilizador anónimo sem permissão de execução de RPCs (EXECUTE grant)",
+      "passed": true,
+      "details": "permission denied for function reserve_organization_quota"
+    },
+    {
+      "id": 14,
+      "category": "FINANCIAL",
+      "name": "Bloqueio de adulteração direta do status da fatura",
+      "passed": true,
+      "details": "Security Violation: Direct modification of invoice status is prohibited."
+    },
+    {
+      "id": 15,
+      "category": "FINANCIAL",
+      "name": "Bloqueio de alteração direta do plan_id da subscrição",
+      "passed": true,
+      "details": "Security Violation: Direct modification of subscription plan is prohibited. Use checkout."
+    },
+    {
+      "id": 16,
+      "category": "FORENSIC",
+      "name": "Imutabilidade absoluta de registos de auditoria (audit_logs)",
+      "passed": true,
+      "details": "Security Violation: Audit logs are strictly immutable and cannot be updated or deleted."
+    },
+    {
+      "id": 17,
+      "category": "FIN-REC-01",
+      "name": "FIN-REC-01 verificado como PENDENTE (subscrição intacta)",
+      "passed": true,
+      "details": "plan_id=225311b5-734e-495c-9c6c-a186b8375dcb, status=active, period_end=2099-12-31T23:59:59+00:00"
+    }
+  ]
+}
