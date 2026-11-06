@@ -1,0 +1,159 @@
+{
+  "timestamp": "2026-11-06T05:29:57.421Z",
+  "totalTests": 16,
+  "passedTests": 16,
+  "failedTests": 0,
+  "status": "PASS",
+  "resources": {
+    "alphaOrgId": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc",
+    "betaOrgId": "0203a089-f117-479b-a2e4-b090ee904e68",
+    "alphaMeetingId": "70878e27-fda6-471b-a2a0-7d51c1b778b6",
+    "betaMeetingId": "227fa4f3-44d6-42dc-be52-dd4e180dc7c8"
+  },
+  "results": [
+    {
+      "testId": "B1",
+      "name": "Leitura Alpha (Alpha Owner consulta dados de Alpha)",
+      "expected": "1 linha retornada",
+      "actual": "1 linhas",
+      "passed": true,
+      "details": {
+        "data": [
+          {
+            "id": "70878e27-fda6-471b-a2a0-7d51c1b778b6",
+            "title": "Reunião Estratégica Alpha — Confidencial 2026",
+            "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc"
+          }
+        ]
+      }
+    },
+    {
+      "testId": "B2",
+      "name": "Leitura Beta (Beta Owner consulta dados de Beta)",
+      "expected": "1 linha retornada",
+      "actual": "1 linhas",
+      "passed": true,
+      "details": {
+        "data": [
+          {
+            "id": "227fa4f3-44d6-42dc-be52-dd4e180dc7c8",
+            "title": "Reunião Estratégica Beta — Confidencial 2026",
+            "organization_id": "0203a089-f117-479b-a2e4-b090ee904e68"
+          }
+        ]
+      }
+    },
+    {
+      "testId": "B3",
+      "name": "Alpha tenta ler Beta (Alpha Owner tenta ler reunião de Beta)",
+      "expected": "0 linhas (bloqueio RLS)",
+      "actual": "0 linhas",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B4",
+      "name": "Beta tenta ler Alpha (Beta Owner tenta ler reunião de Alpha)",
+      "expected": "0 linhas (bloqueio RLS)",
+      "actual": "0 linhas",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B5",
+      "name": "Utilizador Externo tenta ler Alpha ou Beta",
+      "expected": "0 linhas em ambos",
+      "actual": "Alpha: 0, Beta: 0",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B6",
+      "name": "Alpha Member (Lê dados permitidos de Alpha, zero de Beta)",
+      "expected": "1 linha em Alpha, 0 de Beta",
+      "actual": "Alpha: 1, Beta: 0",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B7",
+      "name": "INSERT cruzado (Alpha tenta criar recurso em Beta)",
+      "expected": "Rejeitado por RLS (erro ou 0 linhas)",
+      "actual": "Erro: new row violates row-level security policy for table \"meetings\"",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B8",
+      "name": "UPDATE cruzado (Alpha tenta alterar recurso de Beta)",
+      "expected": "0 linhas afetadas, título Beta intacto",
+      "actual": "Afetados: 0, Título atual: \"Reunião Estratégica Beta — Confidencial 2026\"",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B9",
+      "name": "DELETE cruzado (Alpha tenta eliminar recurso de Beta)",
+      "expected": "0 linhas eliminadas, reunião Beta permanece intacta",
+      "actual": "Eliminados: 0, Existente: true",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B10",
+      "name": "Direção Inversa (Beta tenta INSERT, UPDATE, DELETE em Alpha)",
+      "expected": "Todas as 3 operações bloqueadas, Alpha intacto",
+      "actual": "Insert Err: true, Upd: 0, Del: 0",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B11",
+      "name": "Utilizador Externo tenta INSERT, UPDATE, DELETE",
+      "expected": "Todas as operações bloqueadas por RLS",
+      "actual": "Insert Err: true, Upd: 0, Del: 0",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B12",
+      "name": "Troca de organization_id (Tentativa de mover reunião de Alpha para Beta)",
+      "expected": "Bloqueado por Trigger/RLS, org mantida",
+      "actual": "Erro: Security Violation: Tampering with organization_id is strictly prohibited.",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B13",
+      "name": "Troca de meeting_id (Alpha tenta inserir participante em reunião de Beta)",
+      "expected": "Rejeitado por RLS (código 42501)",
+      "actual": "Erro: new row violates row-level security policy for table \"meeting_participants\"",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B14",
+      "name": "Troca de identificadores em rotas/APIs (Alpha busca reunião de Beta pelo ID exato)",
+      "expected": "Retorna null (404 Not Found no backend)",
+      "actual": "Resultado: null",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B15",
+      "name": "Tentativa de auto-associação indevida (External User tenta entrar em Alpha sem convite)",
+      "expected": "Rejeitado por RLS (código 42501)",
+      "actual": "Erro: new row violates row-level security policy for table \"organization_members\"",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "testId": "B16",
+      "name": "Manipulação de papéis (Alpha Member tenta promover-se a Owner)",
+      "expected": "Bloqueado por RLS, role permanece \"member\"",
+      "actual": "Afetados: 0, Role: \"member\"",
+      "passed": true,
+      "details": {}
+    }
+  ]
+}
