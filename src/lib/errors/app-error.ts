@@ -35,7 +35,11 @@ export type ErrorCode =
   | 'REFUND_ALREADY_PROCESSED'
   | 'INVALID_REFUND_AMOUNT'
   | 'PAYMENT_PROVIDER_NOT_FOUND'
-  | 'RESERVATION_NOT_FOUND';
+  | 'RESERVATION_NOT_FOUND'
+  | 'DATABASE_ERROR'
+  | 'DATABASE_UNAVAILABLE'
+  | 'CONFIGURATION_ERROR'
+  | 'INTERNAL_ERROR';
 
 export class AppError extends Error {
   public readonly code: ErrorCode;

@@ -97,64 +97,92 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
   }): Promise<{ reserved: boolean; reservationId: string; remainingMinutes: number }> {
     // 0. Primary Path: Database Atomic Transactional RPC (PostgreSQL Lock + Check + Insert)
     if (this.supabase) {
+      let data: any;
+      let error: any;
+
       try {
-        const { data, error } = await (this.supabase as any).rpc('reserve_organization_quota', {
+        const response = await (this.supabase as any).rpc('reserve_organization_quota', {
           p_organization_id: params.organizationId,
           p_minutes: params.minutes,
           p_idempotency_key: params.idempotencyKey,
           p_operation: 'transcription_minutes',
           p_ttl_seconds: 3600,
         });
-
-        if (error) {
-          if (error.message.includes('Quota Exceeded')) {
-            throw new AppError({
-              code: 'QUOTA_EXCEEDED',
-              message: error.message,
-              statusCode: 429,
-            });
-          }
-          if (error.message.includes('Idempotency Conflict')) {
-            throw new AppError({
-              code: 'IDEMPOTENCY_CONFLICT',
-              message: error.message,
-              statusCode: 409,
-            });
-          }
-          if (error.message.includes('Subscription Inactive')) {
-            throw new AppError({
-              code: 'SUBSCRIPTION_INACTIVE',
-              message: error.message,
-              statusCode: 403,
-            });
-          }
-          // If RPC is missing in environment (not yet applied), fallback to memory
-        } else if (data && (data as any[]).length > 0) {
-          const row = (data as any[])[0];
-          const reservationId = row.reservation_id;
-          const remainingMinutes = Number(row.remaining_minutes);
-
-          QuotaService.IN_MEMORY_RESERVES.set(params.idempotencyKey, {
-            id: reservationId,
-            organizationId: params.organizationId,
-            quantity: params.minutes,
-            status: 'active',
-            expiresAt: Date.now() + 60 * 60 * 1000,
-          });
-
-          return {
-            reserved: true,
-            reservationId,
-            remainingMinutes,
-          };
-        }
-      } catch (err) {
-        if (err instanceof AppError) throw err;
-        // Fallback to local memory pipeline if RPC invocation encounters network/transport issue
+        data = response.data;
+        error = response.error;
+      } catch (err: any) {
+        // Strict Fail-Closed: Never silently fallback to memory on database connection/driver failure
+        throw new AppError({
+          code: 'DATABASE_UNAVAILABLE',
+          message: `Database quota reservation failed: ${err?.message || 'Connection failure'}`,
+          statusCode: 503,
+        });
       }
+
+      if (error) {
+        if (error.message.includes('Quota Exceeded')) {
+          throw new AppError({
+            code: 'QUOTA_EXCEEDED',
+            message: error.message,
+            statusCode: 429,
+          });
+        }
+        if (error.message.includes('Idempotency Conflict')) {
+          throw new AppError({
+            code: 'IDEMPOTENCY_CONFLICT',
+            message: error.message,
+            statusCode: 409,
+          });
+        }
+        if (error.message.includes('Subscription Inactive')) {
+          throw new AppError({
+            code: 'SUBSCRIPTION_INACTIVE',
+            message: error.message,
+            statusCode: 403,
+          });
+        }
+        if (error.message.includes('Security Violation')) {
+          throw new AppError({
+            code: 'UNAUTHORIZED',
+            message: error.message,
+            statusCode: 403,
+          });
+        }
+
+        // Strict Fail-Closed: Any other DB error rejects the operation; never fallback to memory
+        throw new AppError({
+          code: 'DATABASE_ERROR',
+          message: `Database error during quota reservation: ${error.message}`,
+          statusCode: 500,
+        });
+      }
+
+      if (!data || (data as any[]).length === 0) {
+        throw new AppError({
+          code: 'INTERNAL_ERROR',
+          message: 'Database did not return a valid reservation record.',
+          statusCode: 500,
+        });
+      }
+
+      const row = (data as any[])[0];
+      return {
+        reserved: true,
+        reservationId: row.reservation_id,
+        remainingMinutes: Number(row.remaining_minutes),
+      };
     }
 
-    // 1. In-Memory Fallback Path: Idempotency Check
+    // 1. In-Memory Mock: STRICTLY restricted to unit test environments without a database client
+    if (process.env.NODE_ENV !== 'test') {
+      throw new AppError({
+        code: 'CONFIGURATION_ERROR',
+        message: 'Database client is strictly required for quota management in non-test environments.',
+        statusCode: 500,
+      });
+    }
+
+    // In-Memory Fallback Path (Unit Test Mocking Only)
     const existing = QuotaService.IN_MEMORY_RESERVES.get(params.idempotencyKey);
     if (existing) {
       if (existing.status === 'active') {
@@ -169,7 +197,6 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
       }
     }
 
-    // 2. Check Subscription Health (must not be suspended or expired)
     const sub = await this.subscriptionService.getSubscription(params.organizationId);
     if (sub && ['suspended', 'expired', 'cancelled'].includes(sub.status)) {
       throw new AppError({
@@ -179,7 +206,6 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
       });
     }
 
-    // 3. Check Remaining Quota (accounting for both settled usage and active reservations)
     const balance = await this.getOrganizationBalance(params.organizationId);
     if (balance.remainingMinutes < params.minutes) {
       throw new AppError({
@@ -190,9 +216,8 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
       });
     }
 
-    // 4. Atomic Reservation Record
     const reservationId = crypto.randomUUID();
-    const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour TTL
+    const expiresAt = Date.now() + 60 * 60 * 1000;
 
     QuotaService.IN_MEMORY_RESERVES.set(params.idempotencyKey, {
       id: reservationId,
@@ -201,23 +226,6 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
       status: 'active',
       expiresAt,
     });
-
-    if (this.supabase) {
-      try {
-        await this.supabase.from('organization_quota_reserves').insert({
-          id: reservationId,
-          organization_id: params.organizationId,
-          operation: 'transcription_minutes',
-          reserved_quantity: params.minutes,
-          unit: 'minutes',
-          idempotency_key: params.idempotencyKey,
-          status: 'active',
-          expires_at: new Date(expiresAt).toISOString(),
-        });
-      } catch {
-        // Fallback
-      }
-    }
 
     return {
       reserved: true,
@@ -233,26 +241,48 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
   }): Promise<{ settled: boolean; settledMinutes: number }> {
     if (this.supabase) {
       try {
-        await (this.supabase as any).rpc('settle_organization_quota', {
-          p_reservation_id: crypto.randomUUID(), // Fallback if lookup by idempotency key
+        const { data, error } = await (this.supabase as any).rpc('settle_organization_quota', {
+          p_reservation_id: crypto.randomUUID(),
           p_actual_minutes: params.actualMinutes,
           p_meeting_id: params.meetingId || null,
           p_idempotency_key: params.idempotencyKey,
         });
-      } catch {
-        // Fallback
+
+        if (error) {
+          throw new AppError({
+            code: 'DATABASE_ERROR',
+            message: `Database error settling quota reservation: ${error.message}`,
+            statusCode: 500,
+          });
+        }
+
+        return { settled: true, settledMinutes: params.actualMinutes };
+      } catch (err: any) {
+        if (err instanceof AppError) throw err;
+        throw new AppError({
+          code: 'DATABASE_UNAVAILABLE',
+          message: `Database quota settlement failed: ${err?.message || 'Connection failure'}`,
+          statusCode: 503,
+        });
       }
+    }
+
+    // In-Memory Fallback strictly restricted to test mode
+    if (process.env.NODE_ENV !== 'test') {
+      throw new AppError({
+        code: 'CONFIGURATION_ERROR',
+        message: 'Database client is strictly required for quota management in non-test environments.',
+        statusCode: 500,
+      });
     }
 
     const reserve = QuotaService.IN_MEMORY_RESERVES.get(params.idempotencyKey);
     if (!reserve) {
-      // In database-first mode, if reserve exists in DB, it settles successfully
       return { settled: true, settledMinutes: params.actualMinutes };
     }
 
     reserve.status = 'settled';
 
-    // Record in usage_ledger as settled
     const ledgerId = crypto.randomUUID();
     QuotaService.IN_MEMORY_SETTLED.set(params.idempotencyKey, {
       id: ledgerId,
@@ -262,58 +292,47 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
       status: 'settled',
     });
 
-    if (this.supabase) {
-      try {
-        await this.supabase
-          .from('organization_quota_reserves')
-          .update({ status: 'settled' })
-          .eq('idempotency_key', params.idempotencyKey);
-
-        await this.supabase.from('usage_ledger').insert({
-          id: ledgerId,
-          organization_id: reserve.organizationId,
-          meeting_id: params.meetingId || null,
-          operation: 'transcription_minutes',
-          quantity: params.actualMinutes,
-          unit: 'minutes',
-          cost_cents_usd: calculateEstimatedMinutesCost(params.actualMinutes),
-          idempotency_key: params.idempotencyKey,
-          status: 'settled',
-        });
-      } catch {
-        // Fallback
-      }
-    }
-
     return { settled: true, settledMinutes: params.actualMinutes };
   }
 
   public async releaseMinutes(params: { idempotencyKey: string; reason?: string }): Promise<void> {
     if (this.supabase) {
       try {
-        await (this.supabase as any).rpc('release_organization_quota', {
+        const { error } = await (this.supabase as any).rpc('release_organization_quota', {
           p_reservation_id: crypto.randomUUID(),
           p_idempotency_key: params.idempotencyKey,
         });
-      } catch {
-        // Fallback
+
+        if (error) {
+          throw new AppError({
+            code: 'DATABASE_ERROR',
+            message: `Database error releasing quota reservation: ${error.message}`,
+            statusCode: 500,
+          });
+        }
+        return;
+      } catch (err: any) {
+        if (err instanceof AppError) throw err;
+        throw new AppError({
+          code: 'DATABASE_UNAVAILABLE',
+          message: `Database quota release failed: ${err?.message || 'Connection failure'}`,
+          statusCode: 503,
+        });
       }
+    }
+
+    // In-Memory Fallback strictly restricted to test mode
+    if (process.env.NODE_ENV !== 'test') {
+      throw new AppError({
+        code: 'CONFIGURATION_ERROR',
+        message: 'Database client is strictly required for quota management in non-test environments.',
+        statusCode: 500,
+      });
     }
 
     const reserve = QuotaService.IN_MEMORY_RESERVES.get(params.idempotencyKey);
     if (reserve) {
       reserve.status = 'released';
-    }
-
-    if (this.supabase) {
-      try {
-        await this.supabase
-          .from('organization_quota_reserves')
-          .update({ status: 'released' })
-          .eq('idempotency_key', params.idempotencyKey);
-      } catch {
-        // Fallback
-      }
     }
   }
 
@@ -332,17 +351,10 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
     metadata?: Record<string, unknown>;
   }): Promise<{ id: string; recorded: boolean }> {
     const id = crypto.randomUUID();
-    QuotaService.IN_MEMORY_SETTLED.set(params.idempotencyKey, {
-      id,
-      organizationId: params.organizationId,
-      operation: params.operation,
-      quantity: params.quantity,
-      status: 'settled',
-    });
 
     if (this.supabase) {
       try {
-        await this.supabase.from('usage_ledger').insert({
+        const { error } = await this.supabase.from('usage_ledger').insert({
           id,
           organization_id: params.organizationId,
           meeting_id: params.meetingId || null,
@@ -354,10 +366,41 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
           status: 'settled',
           metadata: (params.metadata || {}) as any,
         });
-      } catch {
-        // Fallback
+
+        if (error) {
+          throw new AppError({
+            code: 'DATABASE_ERROR',
+            message: `Failed to record usage in database: ${error.message}`,
+            statusCode: 500,
+          });
+        }
+      } catch (err: any) {
+        if (err instanceof AppError) throw err;
+        throw new AppError({
+          code: 'DATABASE_UNAVAILABLE',
+          message: `Database usage recording failed: ${err?.message || 'Connection failure'}`,
+          statusCode: 503,
+        });
       }
+
+      return { id, recorded: true };
     }
+
+    if (process.env.NODE_ENV !== 'test') {
+      throw new AppError({
+        code: 'CONFIGURATION_ERROR',
+        message: 'Database client is strictly required for quota management in non-test environments.',
+        statusCode: 500,
+      });
+    }
+
+    QuotaService.IN_MEMORY_SETTLED.set(params.idempotencyKey, {
+      id,
+      organizationId: params.organizationId,
+      operation: params.operation,
+      quantity: params.quantity,
+      status: 'settled',
+    });
 
     return { id, recorded: true };
   }
@@ -390,7 +433,68 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
   }> {
     const limits = await this.getOrganizationPlanLimits(organizationId);
 
-    // Sum settled minutes
+    // Database path: Authoritative computation directly from usage_ledger and active organization_quota_reserves
+    if (this.supabase) {
+      try {
+        const { data: usageData, error: usageErr } = await this.supabase
+          .from('usage_ledger')
+          .select('quantity')
+          .eq('organization_id', organizationId)
+          .eq('operation', 'transcription_minutes')
+          .eq('status', 'settled');
+
+        if (usageErr) {
+          throw new AppError({
+            code: 'DATABASE_ERROR',
+            message: `Failed to query usage ledger: ${usageErr.message}`,
+            statusCode: 500,
+          });
+        }
+
+        const { data: reserveData, error: resErr } = await this.supabase
+          .from('organization_quota_reserves')
+          .select('reserved_quantity')
+          .eq('organization_id', organizationId)
+          .eq('status', 'active')
+          .gt('expires_at', new Date().toISOString());
+
+        if (resErr) {
+          throw new AppError({
+            code: 'DATABASE_ERROR',
+            message: `Failed to query quota reserves: ${resErr.message}`,
+            statusCode: 500,
+          });
+        }
+
+        const settledMinutes = (usageData || []).reduce((acc, row) => acc + Number(row.quantity || 0), 0);
+        const activeReservedMinutes = (reserveData || []).reduce((acc, row) => acc + Number(row.reserved_quantity || 0), 0);
+        const usedMinutes = settledMinutes + activeReservedMinutes;
+        const remainingMinutes = Math.max(0, limits.monthlyMinutes - usedMinutes);
+
+        return {
+          usedMinutes,
+          totalMinutesLimit: limits.monthlyMinutes,
+          remainingMinutes,
+        };
+      } catch (err: any) {
+        if (err instanceof AppError) throw err;
+        throw new AppError({
+          code: 'DATABASE_UNAVAILABLE',
+          message: `Failed to calculate organization balance from database: ${err?.message || 'Connection failure'}`,
+          statusCode: 503,
+        });
+      }
+    }
+
+    // In-Memory Mock: Strictly restricted to unit test mode
+    if (process.env.NODE_ENV !== 'test') {
+      throw new AppError({
+        code: 'CONFIGURATION_ERROR',
+        message: 'Database client is strictly required for quota management in non-test environments.',
+        statusCode: 500,
+      });
+    }
+
     let usedMinutes = 0;
     for (const record of QuotaService.IN_MEMORY_SETTLED.values()) {
       if (record.organizationId === organizationId && record.status === 'settled') {
@@ -398,29 +502,10 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
       }
     }
 
-    // Sum active reservations
     const now = Date.now();
     for (const reserve of QuotaService.IN_MEMORY_RESERVES.values()) {
       if (reserve.organizationId === organizationId && reserve.status === 'active' && reserve.expiresAt > now) {
         usedMinutes += reserve.quantity;
-      }
-    }
-
-    if (this.supabase) {
-      try {
-        const { data } = await this.supabase
-          .from('usage_ledger')
-          .select('quantity')
-          .eq('organization_id', organizationId)
-          .eq('operation', 'transcription_minutes')
-          .eq('status', 'settled');
-
-        if (data && data.length > 0) {
-          const dbUsed = data.reduce((acc, row) => acc + Number(row.quantity), 0);
-          if (dbUsed > usedMinutes) usedMinutes = dbUsed;
-        }
-      } catch {
-        // Fallback
       }
     }
 

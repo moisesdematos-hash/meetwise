@@ -486,4 +486,110 @@ describe('MEETWISE AI — Phase 7.2 Migration 010 Concurrency & Quota Atomicity 
       expect(res.rows[0].version).toBe('20261106000010');
     });
   });
+
+  // ============================================================================
+  // GROUP 5: HARDENED QUOTA SERVICE & STRICT FAIL-CLOSED VERIFICATION
+  // ============================================================================
+  describe('Hardened QuotaService Fail-Closed Behavior', () => {
+    it('[SEC-FALLBACK-01] Strictly throws DATABASE_UNAVAILABLE and forbids in-memory fallback on connection failure', async () => {
+      const { QuotaService } = await import('@/modules/billing/quota-service');
+      const mockFailingSupabase = {
+        rpc: async () => {
+          throw new Error('Connection refused to PostgreSQL host: 5432');
+        },
+      } as any;
+
+      const service = new QuotaService(mockFailingSupabase);
+
+      await expect(
+        service.reserveMinutes({
+          organizationId: orgAlphaId,
+          minutes: 10,
+          idempotencyKey: 'key_fail_conn_01',
+        })
+      ).rejects.toMatchObject({
+        code: 'DATABASE_UNAVAILABLE',
+        statusCode: 503,
+      });
+    });
+
+    it('[SEC-FALLBACK-02] Strictly throws DATABASE_ERROR and forbids in-memory fallback on database RPC error', async () => {
+      const { QuotaService } = await import('@/modules/billing/quota-service');
+      const mockErrorSupabase = {
+        rpc: async () => ({
+          data: null,
+          error: { message: 'relation organization_quota_reserves deadlocked', code: '40P01' },
+        }),
+      } as any;
+
+      const service = new QuotaService(mockErrorSupabase);
+
+      await expect(
+        service.reserveMinutes({
+          organizationId: orgAlphaId,
+          minutes: 10,
+          idempotencyKey: 'key_db_err_01',
+        })
+      ).rejects.toMatchObject({
+        code: 'DATABASE_ERROR',
+        statusCode: 500,
+      });
+    });
+
+    it('[SEC-FALLBACK-03] Strictly throws CONFIGURATION_ERROR in non-test environment when database client is missing', async () => {
+      const { QuotaService } = await import('@/modules/billing/quota-service');
+      const originalEnv = process.env.NODE_ENV;
+      try {
+        (process.env as any).NODE_ENV = 'production';
+        const service = new QuotaService(undefined);
+
+        await expect(
+          service.reserveMinutes({
+            organizationId: orgAlphaId,
+            minutes: 10,
+            idempotencyKey: 'key_prod_nomock_01',
+          })
+        ).rejects.toMatchObject({
+          code: 'CONFIGURATION_ERROR',
+          statusCode: 500,
+        });
+      } finally {
+        (process.env as any).NODE_ENV = originalEnv;
+      }
+    });
+
+    it('[SEC-FALLBACK-04] Successfully settles and releases via database RPC without fictitious fallback records', async () => {
+      const { QuotaService } = await import('@/modules/billing/quota-service');
+      let settleCalled = false;
+      let releaseCalled = false;
+
+      const mockWorkingSupabase = {
+        rpc: async (fnName: string) => {
+          if (fnName === 'settle_organization_quota') {
+            settleCalled = true;
+            return { data: [{ settled: true, settled_minutes: 15, ledger_id: 'ledger-uuid-01' }], error: null };
+          }
+          if (fnName === 'release_organization_quota') {
+            releaseCalled = true;
+            return { data: true, error: null };
+          }
+          return { data: null, error: { message: 'unknown function' } };
+        },
+      } as any;
+
+      const service = new QuotaService(mockWorkingSupabase);
+
+      const settleRes = await service.settleMinutes({
+        idempotencyKey: 'key_settle_mock_01',
+        actualMinutes: 15,
+      });
+      expect(settleRes.settled).toBe(true);
+      expect(settleCalled).toBe(true);
+
+      await service.releaseMinutes({
+        idempotencyKey: 'key_release_mock_01',
+      });
+      expect(releaseCalled).toBe(true);
+    });
+  });
 });
