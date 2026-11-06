@@ -154,8 +154,13 @@ BEGIN
     -- 2. Forçar timestamp atual server-side (elimina retrodatação de eventos)
     NEW.created_at := NOW();
 
-    -- 3. Proteger eventos administrativos contra falsificação por membros comuns
-    IF (NEW.action LIKE 'admin.%' OR NEW.action LIKE 'security.%' OR NEW.action LIKE 'billing.%') THEN
+    -- 3. Proibir eventos financeiros/de faturação por qualquer cliente autenticado (apenas backend/service_role)
+    IF NEW.action LIKE 'billing.%' THEN
+      RAISE EXCEPTION 'Security Violation: Financial and billing audit events cannot be emitted directly by clients.';
+    END IF;
+
+    -- 4. Proteger eventos administrativos contra falsificação por membros comuns
+    IF (NEW.action LIKE 'admin.%' OR NEW.action LIKE 'security.%') THEN
       SELECT role INTO v_role
       FROM public.organization_members
       WHERE organization_id = NEW.organization_id AND user_id = auth.uid() AND status = 'active';

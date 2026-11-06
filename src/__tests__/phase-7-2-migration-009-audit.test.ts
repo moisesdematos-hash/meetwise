@@ -718,4 +718,158 @@ describe('MEETWISE AI — Phase 7.2 Migration 009 Security Audit & Regression Su
     `);
     expect(triggers.rows.length).toBe(3);
   });
+
+  // ============================================================================
+  // FASE D1.C.1: TESTES ADICIONAIS DE CASOS LIMITE E INTEGRIDADE (Tests 26-32)
+  // ============================================================================
+
+  it('26. Owner tentando falsificar evento billing.payment_confirmed -> DEVE FALHAR', async () => {
+    await asUser(alphaOwnerId, async () => {
+      let threw = false;
+      try {
+        await db.query(`
+          INSERT INTO public.audit_logs (
+            organization_id, action, resource_type, resource_id
+          ) VALUES (
+            '${orgAlphaId}', 'billing.payment_confirmed', 'invoice', '${alphaInvoice1Id}'
+          );
+        `);
+      } catch (err: any) {
+        threw = true;
+        expect(err.message).toMatch(/Security Violation: Financial and billing audit events cannot be emitted directly by clients/i);
+      }
+      expect(threw).toBe(true);
+    });
+  });
+
+  it('27. Alteração de múltiplas colunas em invoices (billing_details legítimo + status forjado) -> DEVE FALHAR', async () => {
+    await asUser(alphaOwnerId, async () => {
+      let threw = false;
+      try {
+        await db.query(`
+          UPDATE public.invoices 
+          SET billing_details = '{"notes": "updated"}'::jsonb, status = 'void' 
+          WHERE id = '${alphaInvoice1Id}';
+        `);
+      } catch (err: any) {
+        threw = true;
+        expect(err.message).toMatch(/Security Violation: Direct modification of invoice status is prohibited/i);
+      }
+      expect(threw).toBe(true);
+    });
+  });
+
+  it('28. Alteração de múltiplas colunas em subscriptions (cancel_at_period_end legítimo + current_period_end forjado) -> DEVE FALHAR', async () => {
+    await asUser(alphaOwnerId, async () => {
+      let threw = false;
+      try {
+        await db.query(`
+          UPDATE public.subscriptions 
+          SET cancel_at_period_end = true, current_period_end = '2099-12-31 23:59:59+00' 
+          WHERE organization_id = '${orgAlphaId}';
+        `);
+      } catch (err: any) {
+        threw = true;
+        expect(err.message).toMatch(/Security Violation: Direct modification of subscription period dates is prohibited/i);
+      }
+      expect(threw).toBe(true);
+    });
+  });
+
+  it('29. Tentativas de UPDATE e DELETE em audit_logs mesmo via service_role -> DEVE FALHAR (Imutabilidade Universal)', async () => {
+    await asServiceRole(async () => {
+      // Tentativa de UPDATE
+      let threwUpdate = false;
+      try {
+        await db.query(`
+          UPDATE public.audit_logs 
+          SET action = 'tampered_by_backend' 
+          WHERE organization_id = '${orgAlphaId}';
+        `);
+      } catch (err: any) {
+        threwUpdate = true;
+        expect(err.message).toMatch(/Security Violation: Audit logs are strictly immutable and cannot be updated or deleted/i);
+      }
+      expect(threwUpdate).toBe(true);
+
+      // Tentativa de DELETE
+      let threwDelete = false;
+      try {
+        await db.query(`
+          DELETE FROM public.audit_logs 
+          WHERE organization_id = '${orgAlphaId}';
+        `);
+      } catch (err: any) {
+        threwDelete = true;
+        expect(err.message).toMatch(/Security Violation: Audit logs are strictly immutable and cannot be updated or deleted/i);
+      }
+      expect(threwDelete).toBe(true);
+    });
+  });
+
+  it('30. RPC privilegiada create_organization_with_owner invocada por cliente anónimo -> DEVE FALHAR', async () => {
+    await asUser(null, async () => {
+      let threw = false;
+      try {
+        await db.query(`
+          SELECT public.create_organization_with_owner(
+            'Org Anónima Fraudulenta', 'org-anon-fraud', 'pt', 'Hacker Anónimo'
+          );
+        `);
+      } catch (err: any) {
+        threw = true;
+        expect(err.message).toMatch(/UNAUTHORIZED|permission denied|permissão negada|violates row-level security/i);
+      }
+      expect(threw).toBe(true);
+    });
+  });
+
+  it('31. Operação legítima de webhook via service_role emite evento billing.payment_received -> DEVE TER SUCESSO', async () => {
+    await asServiceRole(async () => {
+      await db.query(`
+        INSERT INTO public.audit_logs (
+          organization_id, user_id, action, resource_type, resource_id
+        ) VALUES (
+          '${orgAlphaId}', NULL, 'billing.payment_received', 'invoice', '${alphaInvoice1Id}'
+        );
+      `);
+    });
+
+    const check = await db.query<any>(`
+      SELECT * FROM public.audit_logs 
+      WHERE organization_id = '${orgAlphaId}' AND action = 'billing.payment_received';
+    `);
+    expect(check.rows.length).toBe(1);
+    expect(check.rows[0].action).toBe('billing.payment_received');
+  });
+
+  it('32. Tentativas de contorno por utilizador anónimo em invoices e subscriptions -> DEVE BLOQUEAR COM PERMISSION DENIED OU 0 LINHAS', async () => {
+    await asUser(null, async () => {
+      let invBlocked = false;
+      try {
+        const invRes = await db.query<any>(`
+          UPDATE public.invoices 
+          SET billing_details = '{"hacked_by_anon": true}'::jsonb 
+          WHERE id = '${alphaInvoice1Id}';
+        `);
+        invBlocked = (invRes.affectedRows ?? 0) === 0;
+      } catch (err: any) {
+        invBlocked = /permission denied/i.test(err.message);
+      }
+      expect(invBlocked).toBe(true);
+
+      let subBlocked = false;
+      try {
+        const subRes = await db.query<any>(`
+          UPDATE public.subscriptions 
+          SET cancel_at_period_end = true 
+          WHERE organization_id = '${orgAlphaId}';
+        `);
+        subBlocked = (subRes.affectedRows ?? 0) === 0;
+      } catch (err: any) {
+        subBlocked = /permission denied/i.test(err.message);
+      }
+      expect(subBlocked).toBe(true);
+    });
+  });
 });
