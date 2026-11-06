@@ -1,0 +1,156 @@
+{
+  "timestamp": "2026-11-06T06:14:30.701Z",
+  "supabaseProject": "https://ycxwomqqepetickmxxqj.supabase.co",
+  "totalTests": 7,
+  "passedTests": 4,
+  "failedTests": 3,
+  "financialIntegrityStatus": "FAIL",
+  "auditLogsStatus": "FAIL",
+  "confirmedVulnerabilitiesCount": 3,
+  "confirmedVulnerabilities": [
+    {
+      "id": "VULN-001",
+      "title": "Adulteração Direta de Fatura por Owner via PostgREST",
+      "table": "public.invoices",
+      "policy": "invoices_manage_admin",
+      "severity": "ALTA",
+      "cvssScore": 7.1,
+      "impact": "Um utilizador com papel owner ou admin pode marcar faturas como pagas e zerar total_cents via API PostgREST, contornando o webhook de pagamento.",
+      "evidence": {
+        "before": {
+          "status": "issued",
+          "total_cents": 1900
+        },
+        "after": {
+          "status": "paid",
+          "total_cents": 0,
+          "payment_reference": "FORGED_PAYMENT_BY_OWNER"
+        }
+      },
+      "remediationProposal": "Substituir política FOR ALL por política que permita apenas SELECT e delegar transições de status e montantes para o webhook/service_role ou trigger que proíba atualização manual das colunas status, total_cents e subtotal_cents."
+    },
+    {
+      "id": "VULN-002",
+      "title": "Upgrade Forçado e Extensão de Subscrição por Owner via PostgREST",
+      "table": "public.subscriptions",
+      "policy": "subscriptions_manage_owner",
+      "severity": "ALTA",
+      "cvssScore": 7.7,
+      "impact": "Um utilizador com papel owner consegue atualizar plan_id e current_period_end diretamente no PostgREST, contornando a cobrança e obtendo recursos Enterprise vitalícios sem pagar.",
+      "evidence": {
+        "before": {
+          "plan_id": "ec6ea177-e266-49a7-bb74-b1c03a687fda",
+          "current_period_end": "2026-12-06T06:14:27.712Z"
+        },
+        "after": {
+          "plan_id": "225311b5-734e-495c-9c6c-a186b8375dcb",
+          "current_period_end": "2099-12-31T23:59:59+00:00"
+        }
+      },
+      "remediationProposal": "Remover permissão de UPDATE direto nas colunas plan_id e current_period_end para authenticated; permitir apenas cancel_at_period_end e delegar alterações de plano e datas ao webhook com service_role."
+    },
+    {
+      "id": "VULN-003",
+      "title": "Falsificação de Identidade e Timestamp em audit_logs",
+      "table": "public.audit_logs",
+      "policy": "audit_logs_insert",
+      "severity": "MÉDIA",
+      "cvssScore": 6.5,
+      "impact": "Membros da organização podem inserir registos de auditoria forjando a autoria de outros membros ou do Owner, além de retrodatar eventos, comprometendo a integridade forense da pista de auditoria.",
+      "evidence": {
+        "insertedByUserId": "ebf825cf-915c-4d75-8fbb-912048062b49",
+        "storedUserId": "bf83fb78-99dd-41f8-b2ce-b4555be1c176",
+        "requestedCreatedAt": "2020-01-01T00:00:00.000Z",
+        "storedCreatedAt": "2020-01-01T00:00:00+00:00",
+        "action": "admin.organization.ownership_transferred_synthetic_1793945670262"
+      },
+      "remediationProposal": "Adicionar trigger BEFORE INSERT ON public.audit_logs que force: NEW.user_id := auth.uid(); NEW.created_at := NOW(); ou atualizar a política RLS com WITH CHECK (user_id = auth.uid())."
+    }
+  ],
+  "testResults": [
+    {
+      "testId": "D1.A.1.1",
+      "description": "Alpha Member tenta atualizar status e valor de fatura",
+      "expected": "Bloqueado por RLS (0 linhas)",
+      "actual": "0 linhas afetadas / erro",
+      "passed": true,
+      "details": {
+        "affected": 0
+      }
+    },
+    {
+      "testId": "D1.A.1.2",
+      "description": "Beta Owner tenta atualizar fatura de outro tenant",
+      "expected": "Bloqueado por RLS (0 linhas)",
+      "actual": "0 linhas afetadas / erro",
+      "passed": true,
+      "details": {
+        "affected": 0
+      }
+    },
+    {
+      "testId": "D1.A.1.3",
+      "description": "Alpha Owner tenta adulterar status da fatura para \"paid\" e zerar montante via PostgREST",
+      "expected": "Rejeitado por trigger/constraint de proteção financeira",
+      "actual": "Adulterado com sucesso (VULNERABILIDADE CONFIRMADA)",
+      "passed": false,
+      "details": {
+        "verifyInv": {
+          "status": "paid",
+          "total_cents": 0,
+          "payment_reference": "FORGED_PAYMENT_BY_OWNER"
+        }
+      }
+    },
+    {
+      "testId": "D1.A.2.1",
+      "description": "Alpha Member tenta upgrade forjado para plano Enterprise",
+      "expected": "Bloqueado por RLS (0 linhas)",
+      "actual": "0 linhas afetadas / erro",
+      "passed": true,
+      "details": {
+        "affected": 0
+      }
+    },
+    {
+      "testId": "D1.A.2.2",
+      "description": "Beta Owner tenta alterar subscrição de outro tenant",
+      "expected": "Bloqueado por RLS (0 linhas)",
+      "actual": "0 linhas afetadas / erro",
+      "passed": true,
+      "details": {
+        "affected": 0
+      }
+    },
+    {
+      "testId": "D1.A.2.3",
+      "description": "Alpha Owner tenta upgrade de plano e extensão de vigência via PostgREST sem checkout",
+      "expected": "Rejeitado por trigger/constraint de proteção de subscrição",
+      "actual": "Adulterado com sucesso (VULNERABILIDADE CONFIRMADA)",
+      "passed": false,
+      "details": {
+        "verifySub": {
+          "plan_id": "225311b5-734e-495c-9c6c-a186b8375dcb",
+          "current_period_end": "2099-12-31T23:59:59+00:00",
+          "status": "active"
+        }
+      }
+    },
+    {
+      "testId": "D1.A.3.1",
+      "description": "Alpha Member tenta forjar autoria de Owner e data de 2020 em audit_logs",
+      "expected": "Rejeitado por RLS ou sanitizado para auth.uid() e NOW()",
+      "actual": "Log forjado aceite com sucesso (VULNERABILIDADE CONFIRMADA)",
+      "passed": false,
+      "details": {
+        "storedLog": {
+          "id": "8f9e8457-2ef6-4b95-82a7-96cad6cce4b9",
+          "user_id": "bf83fb78-99dd-41f8-b2ce-b4555be1c176",
+          "action": "admin.organization.ownership_transferred_synthetic_1793945670262",
+          "created_at": "2020-01-01T00:00:00+00:00",
+          "organization_id": "3f737a15-22e9-48d1-b7d9-7ae806a2d3fc"
+        }
+      }
+    }
+  ]
+}
