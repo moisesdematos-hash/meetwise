@@ -13,10 +13,12 @@ export class DeepgramTranscriptionProvider implements ITranscriptionProviderAdap
   readonly name = 'deepgram' as const;
   private apiKey: string | undefined;
   private defaultTimeoutMs: number;
+  private model: string;
 
-  constructor(apiKey?: string, timeoutMs = 30000) {
+  constructor(apiKey?: string, timeoutMs = 30000, model?: string) {
     this.apiKey = apiKey || process.env.DEEPGRAM_API_KEY;
     this.defaultTimeoutMs = timeoutMs;
+    this.model = model || process.env.DEEPGRAM_MODEL || 'nova-2';
   }
 
   isConfigured(): boolean {
@@ -50,7 +52,7 @@ export class DeepgramTranscriptionProvider implements ITranscriptionProviderAdap
     }
 
     const queryParams = new URLSearchParams({
-      model: 'nova-3',
+      model: this.model,
       diarize: 'true',
       smart_format: 'true',
       punctuate: 'true',

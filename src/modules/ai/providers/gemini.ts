@@ -14,7 +14,7 @@ export class GeminiLLMAdapter implements ILLMAdapter {
 
   constructor(apiKey?: string, model = 'gemini-2.0-flash') {
     this.apiKey = apiKey || process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
-    this.model = model;
+    this.model = process.env.GEMINI_MODEL || model;
   }
 
   isConfigured(): boolean {
