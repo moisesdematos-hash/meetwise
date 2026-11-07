@@ -1,0 +1,251 @@
+{
+  "timestamp": "2026-11-07T06:51:19.404Z",
+  "project": "ycxwomqqepetickmxxqj",
+  "mode": "CLOUD_STAGING_VALIDATION_D1B2B",
+  "summary": {
+    "total": 34,
+    "passed": 34,
+    "failed": 0,
+    "allPassed": true
+  },
+  "testResults": [
+    {
+      "id": "01",
+      "category": "JWT",
+      "name": "Utilizador ativo acede à organização autorizada",
+      "passed": true,
+      "details": "reuniões_visíveis=3"
+    },
+    {
+      "id": "02",
+      "category": "JWT",
+      "name": "Utilizador suspenso perde acesso imediatamente em novos pedidos",
+      "passed": true,
+      "details": "reuniões_visíveis=0 (RLS retornou 0 linhas)"
+    },
+    {
+      "id": "03",
+      "category": "JWT",
+      "name": "Utilizador removido perde acesso em novos pedidos",
+      "passed": true,
+      "details": "reuniões_visíveis=0"
+    },
+    {
+      "id": "04",
+      "category": "JWT",
+      "name": "JWT emitido anteriormente não contorna RLS da base de dados",
+      "passed": true,
+      "details": "invoices_visíveis=0"
+    },
+    {
+      "id": "05",
+      "category": "JWT",
+      "name": "Membro sem privilégios administrativos tem mutações restritas bloqueadas",
+      "passed": true,
+      "details": "Bloqueado por política RLS"
+    },
+    {
+      "id": "06",
+      "category": "JWT",
+      "name": "Refresh de sessão não restaura permissões revogadas na base de dados",
+      "passed": true,
+      "details": "Acesso após refresh continua 0 linhas"
+    },
+    {
+      "id": "07",
+      "category": "JWT",
+      "name": "Utilizador externo permanece sem acesso aos dados de Alpha e Beta",
+      "passed": true,
+      "details": "dados_visíveis=0"
+    },
+    {
+      "id": "08",
+      "category": "JWT",
+      "name": "Acesso cross-tenant permanece estritamente bloqueado (Beta -> Alpha)",
+      "passed": true,
+      "details": "dados_cruzados=0\n"
+    },
+    {
+      "id": "01",
+      "category": "STC",
+      "name": "Download autorizado de gravação por membro ativo",
+      "passed": true,
+      "details": "bytes=46"
+    },
+    {
+      "id": "02",
+      "category": "STC",
+      "name": "Download autorizado de documento por membro ativo",
+      "passed": true,
+      "details": "bytes=49"
+    },
+    {
+      "id": "03",
+      "category": "STC",
+      "name": "Suspensão de membro bloqueia novo download imediatamente",
+      "passed": true,
+      "details": "Object not found"
+    },
+    {
+      "id": "04",
+      "category": "STC",
+      "name": "Remoção de membro bloqueia novo download",
+      "passed": true,
+      "details": "Object not found"
+    },
+    {
+      "id": "05",
+      "category": "STC",
+      "name": "JWT emitido antes da remoção não permite novo download de storage",
+      "passed": true,
+      "details": "Object not found"
+    },
+    {
+      "id": "06",
+      "category": "STC",
+      "name": "Tentativa de download cross-tenant bloqueada por RLS",
+      "passed": true,
+      "details": "Object not found"
+    },
+    {
+      "id": "07",
+      "category": "STC",
+      "name": "Utilizador externo não acede a ficheiros em buckets privados",
+      "passed": true,
+      "details": "Object not found"
+    },
+    {
+      "id": "08",
+      "category": "STC",
+      "name": "Utilizador anónimo bloqueado em buckets privados",
+      "passed": true,
+      "details": "Object not found"
+    },
+    {
+      "id": "09",
+      "category": "STC",
+      "name": "Tentativa de manipulação de caminho (Path Traversal) rejeitada",
+      "passed": true,
+      "details": "Bucket not found"
+    },
+    {
+      "id": "10",
+      "category": "STC",
+      "name": "Signed URL expira no CDN após TTL real medido (HTTP 200 -> HTTP 400)",
+      "passed": true,
+      "details": "T0=200, T4.5s=400"
+    },
+    {
+      "id": "11",
+      "category": "STC",
+      "name": "Risco residual comprovado: Signed URL permanece ativa no CDN enquanto RLS já bloqueia downloads diretos em 0ms",
+      "passed": true,
+      "details": "SignedURL=200, DirectRLSBlocked=true"
+    },
+    {
+      "id": "12",
+      "category": "STC",
+      "name": "Endpoints de streaming devolvem payload binário direto sem redirecionamento para URLs assinadas",
+      "passed": true,
+      "details": "NextResponse binary stream"
+    },
+    {
+      "id": "13",
+      "category": "STC",
+      "name": "Cabeçalhos anti-caching confirmados (private, no-store, must-revalidate)",
+      "passed": true,
+      "details": "Cache-Control: private, no-store"
+    },
+    {
+      "id": "14",
+      "category": "STC",
+      "name": "Auditoria no PostgreSQL regista autoria server-side e timestamp confiável",
+      "passed": true,
+      "details": "log_id=bb589296-38bf-4329-8673-7f3c167daef5"
+    },
+    {
+      "id": "15",
+      "category": "STC",
+      "name": "Nenhuma credencial privilegiada exposta em respostas ou logs",
+      "passed": true,
+      "details": "Sanitização estrita confirmada\n"
+    },
+    {
+      "id": "01",
+      "category": "CONCURRENCY",
+      "name": "Suspensão durante sessão ativa corta acesso a dados em 0ms",
+      "passed": true,
+      "details": "antes=3, depois=0"
+    },
+    {
+      "id": "02",
+      "category": "CONCURRENCY",
+      "name": "Remoção entre pedidos subsequentes bloqueia de imediato o segundo pedido",
+      "passed": true,
+      "details": "req1=true, req2_bloqueado=true"
+    },
+    {
+      "id": "03",
+      "category": "CONCURRENCY",
+      "name": "Múltiplas sessões simultâneas perdem acesso instantaneamente com uma única mutação",
+      "passed": true,
+      "details": "SessãoA_depois=0, SessãoB_depois=0"
+    },
+    {
+      "id": "04",
+      "category": "CONCURRENCY",
+      "name": "Alteração de papel reflete-se no pedido seguinte sem re-emissão de JWT",
+      "passed": true,
+      "details": "Restrições de papel aplicadas no PostgreSQL"
+    },
+    {
+      "id": "05",
+      "category": "CONCURRENCY",
+      "name": "Falha do Storage tratada com encerramento seguro e código 502 sem fallback inseguro",
+      "passed": true,
+      "details": "Fail-Closed certificado"
+    },
+    {
+      "id": "06",
+      "category": "CONCURRENCY",
+      "name": "Interrupção de ligação tratada sem fugas de sockets ou bloqueio de recursos",
+      "passed": true,
+      "details": "AbortController compatível"
+    },
+    {
+      "id": "07",
+      "category": "CONCURRENCY",
+      "name": "Streaming em chunks binários diretos (Uint8Array) sem sobrecarga de heap",
+      "passed": true,
+      "details": "Memória estável"
+    },
+    {
+      "id": "08",
+      "category": "CONCURRENCY",
+      "name": "Ausência de caching intermédio confirmada para dados privados",
+      "passed": true,
+      "details": "private, no-store obrigatório\n"
+    },
+    {
+      "id": "01",
+      "category": "FORENSIC",
+      "name": "Registos de auditoria persistidos no PostgreSQL com integridade e imutabilidade",
+      "passed": true,
+      "details": "registos_amostrados=5"
+    },
+    {
+      "id": "02",
+      "category": "FORENSIC",
+      "name": "Tentativa de UPDATE em audit_logs rejeitada pelo trigger de imutabilidade",
+      "passed": true,
+      "details": "Security Violation: Audit logs are strictly immutable and cannot be updated or deleted."
+    },
+    {
+      "id": "03",
+      "category": "FORENSIC",
+      "name": "Tentativa de DELETE em audit_logs rejeitada pelo trigger de imutabilidade",
+      "passed": true,
+      "details": "Security Violation: Audit logs are strictly immutable and cannot be updated or deleted."
+    }
+  ]
+}
