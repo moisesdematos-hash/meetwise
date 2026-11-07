@@ -45,9 +45,20 @@ export interface StorageSignedUrlResult {
   expiresInSeconds: number;
 }
 
+export interface SignedUrlAuditContext {
+  organizationId: string;
+  userId?: string;
+  meetingId?: string;
+  ipAddress?: string;
+}
+
 export interface IStorageService {
   generatePresignedUploadUrl(params: StorageUploadParams): Promise<StorageSignedUrlResult>;
-  generatePresignedDownloadUrl(storagePath: string, expiresInSeconds?: number): Promise<string>;
+  generatePresignedDownloadUrl(
+    storagePath: string,
+    expiresInSeconds?: number,
+    auditContext?: SignedUrlAuditContext
+  ): Promise<string>;
   deleteFile(storagePath: string): Promise<void>;
 }
 
@@ -242,6 +253,59 @@ export function buildSecureStoragePath(
   }
 
   return `${organizationId}/${meetingId}/${assetId}.${cleanExt}`;
+}
+
+/**
+ * Validates storage path to prevent path traversal and ensure multi-tenant isolation.
+ */
+export function validateStoragePathSecurity(
+  storagePath: string,
+  expectedOrgId?: string,
+  expectedMeetingId?: string
+): void {
+  if (!storagePath || typeof storagePath !== 'string') {
+    throw new AppError({
+      code: 'VALIDATION_ERROR',
+      message: 'Caminho de armazenamento obrigatório.',
+    });
+  }
+
+  // Prevent path traversal, null bytes, backslashes, URL encoded traversals
+  if (
+    storagePath.includes('..') ||
+    storagePath.includes('\\') ||
+    storagePath.startsWith('/') ||
+    /[\x00-\x1F\x7F]/.test(storagePath) ||
+    storagePath.includes('%2e') ||
+    storagePath.includes('%2E')
+  ) {
+    throw new AppError({
+      code: 'VALIDATION_ERROR',
+      message: 'Detetada tentativa de manipulação de caminho (path traversal).',
+    });
+  }
+
+  const parts = storagePath.split('/');
+  if (parts.length < 2) {
+    throw new AppError({
+      code: 'VALIDATION_ERROR',
+      message: 'Estrutura de caminho de armazenamento inválida.',
+    });
+  }
+
+  if (expectedOrgId && parts[0] !== expectedOrgId) {
+    throw new AppError({
+      code: 'FORBIDDEN',
+      message: 'Violação de isolamento multi-tenant no caminho de armazenamento.',
+    });
+  }
+
+  if (expectedMeetingId && parts[1] !== expectedMeetingId) {
+    throw new AppError({
+      code: 'FORBIDDEN',
+      message: 'Incompatibilidade de reunião no caminho de armazenamento.',
+    });
+  }
 }
 
 export { AudioMetadataService, defaultAudioMetadataService } from './metadata';

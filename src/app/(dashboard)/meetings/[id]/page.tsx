@@ -133,7 +133,7 @@ export default function MeetingDetailPage() {
 
         if (mediaData && mediaData.length > 0 && isMounted) {
           const asset = mediaData[0];
-          setAudioUrl(asset.storage_path || '');
+          setAudioUrl(asset.storage_path ? `/api/meetings/${meetingId}/recordings/stream` : '');
         }
 
         // 5. Fetch processing job to check if simulated

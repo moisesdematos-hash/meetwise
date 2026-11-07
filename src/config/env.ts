@@ -18,6 +18,8 @@ const serverEnvSchema = clientEnvSchema.extend({
   MEETWISE_STORAGE_BUCKET_RECORDINGS: z.string().default('meeting_recordings'),
   MEETWISE_STORAGE_BUCKET_DOCS: z.string().default('meeting_documents'),
   MEETWISE_WEBHOOK_SECRET: z.string().min(16).default('development-webhook-secret-min-32-chars-long'),
+  STORAGE_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(60),
+  MAX_STORAGE_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(300),
 });
 
 export type ClientEnv = z.infer<typeof clientEnvSchema>;
