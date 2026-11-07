@@ -1,0 +1,401 @@
+{
+  "timestamp": "2026-11-07T08:48:14.081Z",
+  "project": "ycxwomqqepetickmxxqj",
+  "mode": "REAL_CLOUD_PIPELINE_VALIDATION_D1B3C",
+  "summary": {
+    "total": 48,
+    "passed": 48,
+    "failed": 0,
+    "allPassed": true
+  },
+  "results": [
+    {
+      "id": "QC-01",
+      "category": "QUOTA",
+      "name": "Organização Free respeita quota Free (Alpha ativa no plano free)",
+      "passed": true,
+      "details": "plan=free"
+    },
+    {
+      "id": "QC-02",
+      "category": "QUOTA",
+      "name": "Organização Pro respeita quota Pro (Beta com isolamento de plano)",
+      "passed": true,
+      "details": "plan_status=configured"
+    },
+    {
+      "id": "QC-03",
+      "category": "QUOTA",
+      "name": "Reserva acima do limite é rejeitada com Quota Exceeded",
+      "passed": true,
+      "details": "Quota Exceeded: Requested 999999 minutes, but only 3.00 remain in active cycle (limit: 45, used: 42.00)."
+    },
+    {
+      "id": "QC-04",
+      "category": "QUOTA",
+      "name": "Duas reservas concorrentes tratadas com atomicidade transacional",
+      "passed": true,
+      "details": "res1_err=false, res2_err=true"
+    },
+    {
+      "id": "QC-05",
+      "category": "QUOTA",
+      "name": "Idempotency key repetida retorna a mesma reserva sem duplicação",
+      "passed": true,
+      "details": "resId=ca67730a-2c80-4c93-9df5-6868eaeda1b3, err1=none"
+    },
+    {
+      "id": "QC-06",
+      "category": "QUOTA",
+      "name": "Liquidação repetida (settle) é idempotente e não duplica consumo",
+      "passed": true,
+      "details": "settled1=true, settled2=true"
+    },
+    {
+      "id": "QC-07",
+      "category": "QUOTA",
+      "name": "Libertação repetida (release) é idempotente e segura",
+      "passed": true,
+      "details": "rel1=true, rel2=true"
+    },
+    {
+      "id": "QC-08",
+      "category": "QUOTA",
+      "name": "Organização Beta bloqueada de consumir quota Alpha (Cross-tenant security violation)",
+      "passed": true,
+      "details": "Security Violation: User is not an active member of this organization."
+    },
+    {
+      "id": "QC-09",
+      "category": "QUOTA",
+      "name": "Falha de processamento liberta reserva elegível com sucesso",
+      "passed": true,
+      "details": "released=true"
+    },
+    {
+      "id": "QC-10",
+      "category": "QUOTA",
+      "name": "Ledger permanece consistente com registos auditáveis no Cloud PostgreSQL",
+      "passed": true,
+      "details": "ledger_entries=9"
+    },
+    {
+      "id": "JC-01",
+      "category": "JOBS",
+      "name": "Job válido é enfileirado com status queued",
+      "passed": true,
+      "details": "id=99999999-9999-4999-9999-999999999999"
+    },
+    {
+      "id": "JC-02",
+      "category": "JOBS",
+      "name": "Job sem quota é rejeitado antes do enfileiramento",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "JC-03",
+      "category": "JOBS",
+      "name": "Dois workers concorrentes disputam o claim com WHERE status = queued",
+      "passed": true,
+      "details": "w1=1, w2=0"
+    },
+    {
+      "id": "JC-04",
+      "category": "JOBS",
+      "name": "Apenas um worker obtém o claim com sucesso (bloqueio atómico garantido)",
+      "passed": true,
+      "details": "vencedor=Worker 1"
+    },
+    {
+      "id": "JC-05",
+      "category": "JOBS",
+      "name": "Tentativa de claim em job já adquirido (processing) retorna 0 linhas (JOB_ALREADY_CLAIMED)",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "JC-06",
+      "category": "JOBS",
+      "name": "Job falhado mantém estado consistente e armazena mensagem de erro",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "JC-07",
+      "category": "JOBS",
+      "name": "Job abandonado com timeout expirado é recuperado com segurança",
+      "passed": true,
+      "details": "recovered=1"
+    },
+    {
+      "id": "JC-08",
+      "category": "JOBS",
+      "name": "Worker ativo recente não é confundido com job abandonado",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "JC-09",
+      "category": "JOBS",
+      "name": "Job bloqueado de aceder a ficheiro de mídia de outra organização",
+      "passed": true,
+      "details": "cross-tenant join rejected"
+    },
+    {
+      "id": "JC-10",
+      "category": "JOBS",
+      "name": "Reinício de worker mantém liquidação idempotente sem cobrança duplicada",
+      "passed": true,
+      "details": "ledger_entries=1"
+    },
+    {
+      "id": "UC-01",
+      "category": "UPLOAD",
+      "name": "Upload WAV sintético válido com magic bytes RIFF/WAV aceito no Cloud Storage",
+      "passed": true,
+      "details": "storage_err=none"
+    },
+    {
+      "id": "UC-02",
+      "category": "UPLOAD",
+      "name": "Upload MP3 sintético válido com magic bytes ID3 aceito no Cloud Storage",
+      "passed": true,
+      "details": "storage_err=none"
+    },
+    {
+      "id": "UC-03",
+      "category": "UPLOAD",
+      "name": "Ficheiro com 0 bytes rejeitado (EMPTY_FILE)",
+      "passed": true,
+      "details": "Ficheiro de áudio vazio (0 bytes). Não é processável."
+    },
+    {
+      "id": "UC-04",
+      "category": "UPLOAD",
+      "name": "Ficheiro com extensão falsa (.wav com texto) rejeitado (INVALID_FILE_TYPE)",
+      "passed": true,
+      "details": "Incompatibilidade de assinatura binária (MIME spoofing): cabeçalho WAV inválido."
+    },
+    {
+      "id": "UC-05",
+      "category": "UPLOAD",
+      "name": "MIME manipulado (audio/mpeg falso) rejeitado por magic bytes",
+      "passed": true,
+      "details": "Incompatibilidade de assinatura binária (MIME spoofing): cabeçalho MP3/MPEG inválido."
+    },
+    {
+      "id": "UC-06",
+      "category": "UPLOAD",
+      "name": "Ficheiro truncado (< 12 bytes) rejeitado (FILE_TRUNCATED)",
+      "passed": true,
+      "details": "Ficheiro corrompido ou truncado: cabeçalho binário incompleto."
+    },
+    {
+      "id": "UC-07",
+      "category": "UPLOAD",
+      "name": "Ficheiro acima do limite de 500 MB rejeitado (FILE_TOO_LARGE)",
+      "passed": true,
+      "details": "Dimensão do ficheiro excede o limite de 500MB (500.0MB)."
+    },
+    {
+      "id": "UC-08",
+      "category": "UPLOAD",
+      "name": "Utilizador externo bloqueado de carregar ficheiro para bucket Alpha (RLS)",
+      "passed": true,
+      "details": "mime type text/plain;charset=UTF-8 is not supported"
+    },
+    {
+      "id": "UC-09",
+      "category": "UPLOAD",
+      "name": "Beta bloqueado de anexar media à reunião Alpha (Foreign key & RLS)",
+      "passed": true,
+      "details": "new row violates row-level security policy for table \"media_assets\""
+    },
+    {
+      "id": "UC-10",
+      "category": "UPLOAD",
+      "name": "Nenhum ficheiro inválido passa pelo validador antes de ser despachado para STT",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "AI-01",
+      "category": "SIMULATED_AI",
+      "name": "Transcrição simulada persistida em transcript_segments no Cloud Staging",
+      "passed": true,
+      "details": "segments=2"
+    },
+    {
+      "id": "AI-02",
+      "category": "SIMULATED_AI",
+      "name": "Timeout STT tratado com AbortController e código TIMEOUT_ERROR",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "AI-03",
+      "category": "SIMULATED_AI",
+      "name": "Retry resiliente após HTTP 429 respeitando jitter e Retry-After",
+      "passed": true,
+      "details": "attempts=2"
+    },
+    {
+      "id": "AI-04",
+      "category": "SIMULATED_AI",
+      "name": "Erro fatal 401 falha imediatamente com exatamente zero retries",
+      "passed": true,
+      "details": "attempts=1"
+    },
+    {
+      "id": "AI-05",
+      "category": "SIMULATED_AI",
+      "name": "Resposta STT com JSON corrompido é rejeitada sem quebrar o pipeline",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "AI-06",
+      "category": "SIMULATED_AI",
+      "name": "Resposta LLM válida persistida em meeting_minutes com status draft_ai",
+      "passed": true,
+      "details": "id=0527b771-48c3-4c44-9bd2-2c4070a7e9e7"
+    },
+    {
+      "id": "AI-07",
+      "category": "SIMULATED_AI",
+      "name": "JSON LLM truncado tratado sem crash do worker",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "AI-08",
+      "category": "SIMULATED_AI",
+      "name": "Tentativa de prompt injection na transcrição neutralizada como dado literal",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "AI-09",
+      "category": "SIMULATED_AI",
+      "name": "Decisão sem validação humana permanece não aprovada",
+      "passed": true,
+      "details": "decisionId=4c28d4dc-3cb8-40c8-a077-b8356549f444"
+    },
+    {
+      "id": "AI-10",
+      "category": "SIMULATED_AI",
+      "name": "Falha na geração LLM não provoca consumo duplicado e liberta reserva",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "EXC-01",
+      "category": "EXPORT",
+      "name": "Ata draft_ai exportada categorizada explicitamente como rascunho",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "EXC-02",
+      "category": "EXPORT",
+      "name": "PDF de rascunho inclui marca de água diagonal com opacidade 0.12",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "EXC-03",
+      "category": "EXPORT",
+      "name": "DOCX identifica cabeçalho proeminente de aviso de rascunho não aprovado",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "EXC-04",
+      "category": "EXPORT",
+      "name": "TXT inclui bloco de aviso em caixa fechada de rascunho não aprovado",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "EXC-05",
+      "category": "EXPORT",
+      "name": "Ata em revisão exibe DOCUMENTO EM REVISÃO e nunca estado final",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "EXC-06",
+      "category": "EXPORT",
+      "name": "Ata aprovada é exportada limpa sem marca de água de rascunho",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "EXC-07",
+      "category": "EXPORT",
+      "name": "Ata com status final_signed protegida contra adulteração",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "id": "EXC-08",
+      "category": "EXPORT",
+      "name": "Tentativa de leitura/exportação cross-tenant bloqueada por RLS",
+      "passed": true,
+      "details": "docs_visíveis=0"
+    }
+  ],
+  "resilienceScenarios": [
+    {
+      "id": 1,
+      "name": "Crash antes da reserva de quota",
+      "outcome": "Nenhuma quota deduzida; transação anulada (PASS)"
+    },
+    {
+      "id": 2,
+      "name": "Crash depois da reserva de quota",
+      "outcome": "TTL automático liberta reserva após expiração (PASS)"
+    },
+    {
+      "id": 3,
+      "name": "Crash depois do claim do worker",
+      "outcome": "recoverStaleJobs reclassifica job e liberta reserva (PASS)"
+    },
+    {
+      "id": 4,
+      "name": "Timeout STT (AbortController)",
+      "outcome": "Timeout detectado em 150ms; status failed registrado (PASS)"
+    },
+    {
+      "id": 5,
+      "name": "Falha de conexão com LLM",
+      "outcome": "Minutos preservados; quota estimada devolvida (PASS)"
+    },
+    {
+      "id": 6,
+      "name": "Reprocessamento de job",
+      "outcome": "Idempotency key garante unicidade sem duplicações (PASS)"
+    },
+    {
+      "id": 7,
+      "name": "Recuperação de job abandonado",
+      "outcome": "Atualização periódica evita recuperação precipitada (PASS)"
+    },
+    {
+      "id": 8,
+      "name": "Preservação de worker ativo",
+      "outcome": "Job com atividade < 15 min não é cancelado (PASS)"
+    },
+    {
+      "id": 9,
+      "name": "Idempotência do livro-razão",
+      "outcome": "Múltiplas liquidações mantêm exatamente 1 registo (PASS)"
+    },
+    {
+      "id": 10,
+      "name": "Ausência de chamadas comerciais",
+      "outcome": "Custo medido de $0.00 USD (PASS)"
+    }
+  ]
+}
