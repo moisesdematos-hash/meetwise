@@ -1,0 +1,35 @@
+{
+  "timestamp": "2026-11-07T11:24:45.019Z",
+  "mode": "sovereign_governance_no_ai",
+  "organization": "Alpha",
+  "meetingTitle": "Reunião do Conselho de Administração — Homologação Soberana 2026",
+  "documentNumber": "ATA-2026-0001",
+  "lifecycleVerified": [
+    "draft",
+    "in_review",
+    "final_signed"
+  ],
+  "exports": {
+    "pdf": {
+      "bytes": 6359,
+      "valid": true
+    },
+    "docx": {
+      "bytes": 13525,
+      "valid": true
+    },
+    "txt": {
+      "length": 3559,
+      "valid": true
+    }
+  },
+  "privacy": {
+    "externalApiCalls": 0,
+    "dataExfiltrationRisk": "NONE",
+    "confidentialityGuaranteed": true
+  },
+  "cost": {
+    "totalUSD": 0
+  },
+  "decision": "GO"
+}
