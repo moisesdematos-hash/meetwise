@@ -195,6 +195,63 @@ export function validateMediaBufferMagicBytes(buffer: Buffer, declaredMimeType: 
 }
 
 /**
+ * Rigorously validates an ingested media asset buffer before dispatching to STT:
+ * 1. Checks buffer is non-empty and has at least minimum header length (>= 12 bytes).
+ * 2. Checks size limits (max 500MB).
+ * 3. Enforces binary magic bytes against declared MIME type and file extension.
+ * 4. Rejects corrupt or truncated headers and MIME spoofing attempts.
+ */
+export function validateIngestedMediaAsset(params: {
+  buffer: Buffer;
+  declaredMimeType: string;
+  filename: string;
+  sizeBytes?: number;
+}): void {
+  if (!params.buffer || params.buffer.length === 0) {
+    throw new AppError({
+      code: 'VALIDATION_ERROR',
+      message: 'Ficheiro de áudio vazio (0 bytes). Não é processável.',
+    });
+  }
+
+  if (params.buffer.length < 12) {
+    throw new AppError({
+      code: 'VALIDATION_ERROR',
+      message: 'Ficheiro corrompido ou truncado: cabeçalho binário incompleto.',
+    });
+  }
+
+  const actualSize = params.sizeBytes ?? params.buffer.length;
+  if (actualSize > MAX_AUDIO_FILE_SIZE_BYTES) {
+    throw new AppError({
+      code: 'VALIDATION_ERROR',
+      message: `Dimensão do ficheiro excede o limite de 500MB (${(actualSize / (1024 * 1024)).toFixed(1)}MB).`,
+    });
+  }
+
+  // Validate extension and format consistency
+  const ext = validateFileExtension(params.filename);
+
+  // Validate Magic Bytes against declared MIME type
+  validateMediaBufferMagicBytes(params.buffer, params.declaredMimeType);
+
+  // Cross-check extension vs MIME type
+  const mime = params.declaredMimeType.toLowerCase().trim();
+  if (ext === '.wav' && !mime.includes('wav')) {
+    throw new AppError({
+      code: 'VALIDATION_ERROR',
+      message: `Extensão falsa detetada: ficheiro '${params.filename}' com MIME type '${params.declaredMimeType}'.`,
+    });
+  }
+  if (ext === '.mp3' && !mime.includes('mp3') && !mime.includes('mpeg')) {
+    throw new AppError({
+      code: 'VALIDATION_ERROR',
+      message: `Extensão falsa detetada: ficheiro '${params.filename}' com MIME type '${params.declaredMimeType}'.`,
+    });
+  }
+}
+
+/**
  * Sanitizes arbitrary filenames removing path traversal sequences and illegal characters.
  */
 export function sanitizeFilename(filename: string): string {

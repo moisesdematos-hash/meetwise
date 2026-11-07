@@ -39,7 +39,10 @@ export type ErrorCode =
   | 'DATABASE_ERROR'
   | 'DATABASE_UNAVAILABLE'
   | 'CONFIGURATION_ERROR'
-  | 'INTERNAL_ERROR';
+  | 'INTERNAL_ERROR'
+  | 'JOB_ALREADY_CLAIMED'
+  | 'TIMEOUT_ERROR'
+  | 'OPERATION_CANCELLED';
 
 export class AppError extends Error {
   public readonly code: ErrorCode;

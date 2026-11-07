@@ -25,4 +25,7 @@ export interface IProcessingQueue {
   getJobStatus(
     jobId: string
   ): Promise<{ status: JobStatus; lastError: string | null; attempts: number; completedAt: string | null }>;
+  recoverStaleJobs?(
+    staleThresholdMinutes?: number
+  ): Promise<{ recovered: number; failed: number }>;
 }

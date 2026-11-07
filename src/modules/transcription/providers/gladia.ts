@@ -1,4 +1,5 @@
 import { AppError } from '@/lib/errors/app-error';
+import { executeResilientSTTFetch } from '../resilient-fetch';
 import {
   type ITranscriptionProviderAdapter,
   type TranscriptionAudioInput,
@@ -11,9 +12,11 @@ import {
 export class GladiaTranscriptionProvider implements ITranscriptionProviderAdapter {
   readonly name = 'gladia' as const;
   private apiKey: string | undefined;
+  private defaultTimeoutMs: number;
 
-  constructor(apiKey?: string) {
+  constructor(apiKey?: string, timeoutMs = 30000) {
     this.apiKey = apiKey || process.env.GLADIA_API_KEY;
+    this.defaultTimeoutMs = timeoutMs;
   }
 
   isConfigured(): boolean {
@@ -59,22 +62,23 @@ export class GladiaTranscriptionProvider implements ITranscriptionProviderAdapte
       });
     }
 
-    const response = await fetch('https://api.gladia.io/v2/transcription/', {
-      method: 'POST',
-      headers: {
-        'x-gladia-key': this.apiKey!,
-        'Content-Type': 'application/json',
+    const response = await executeResilientSTTFetch(
+      'https://api.gladia.io/v2/transcription/',
+      {
+        method: 'POST',
+        headers: {
+          'x-gladia-key': this.apiKey!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new AppError({
-        code: 'INTEGRATION_ERROR',
-        message: `Falha na API Gladia (${response.status}): ${errText}`,
-      });
-    }
+      {
+        timeoutMs: this.defaultTimeoutMs,
+        maxRetries: 2,
+        apiKeyToRedact: this.apiKey,
+        providerName: 'Gladia',
+      }
+    );
 
     const data = await response.json();
     return this.normalizeGladiaResponse(data, options?.language || 'pt');

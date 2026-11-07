@@ -102,6 +102,40 @@ export class DocxExportService implements IDocxExportService {
             }),
           },
           children: [
+            // Prominent Draft/Review Banner
+            ...(document.approvalStatus === 'draft_ai'
+              ? [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: '*** RASCUNHO NÃO APROVADO — GERADO POR INTELIGÊNCIA ARTIFICIAL ***',
+                        bold: true,
+                        color: 'DC2626',
+                        size: 20,
+                      }),
+                    ],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 100, after: 150 },
+                  }),
+                ]
+              : (document.approvalStatus as string) === 'in_review' ||
+                document.approvalStatus === 'pending_review'
+              ? [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: '*** DOCUMENTO EM REVISÃO — PENDENTE DE VALIDAÇÃO HUMANA FINAL ***',
+                        bold: true,
+                        color: 'D97706',
+                        size: 20,
+                      }),
+                    ],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 100, after: 150 },
+                  }),
+                ]
+              : []),
+
             // Title & Document Header
             new Paragraph({
               text: document.title,

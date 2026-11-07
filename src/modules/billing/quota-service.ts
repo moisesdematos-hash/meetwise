@@ -238,11 +238,12 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
     idempotencyKey: string;
     actualMinutes: number;
     meetingId?: string;
+    reservationId?: string;
   }): Promise<{ settled: boolean; settledMinutes: number }> {
     if (this.supabase) {
       try {
         const { data, error } = await (this.supabase as any).rpc('settle_organization_quota', {
-          p_reservation_id: crypto.randomUUID(),
+          p_reservation_id: params.reservationId || crypto.randomUUID(),
           p_actual_minutes: params.actualMinutes,
           p_meeting_id: params.meetingId || null,
           p_idempotency_key: params.idempotencyKey,
@@ -295,11 +296,15 @@ export class QuotaService implements IQuotaService, IEntitlementService, IUsageM
     return { settled: true, settledMinutes: params.actualMinutes };
   }
 
-  public async releaseMinutes(params: { idempotencyKey: string; reason?: string }): Promise<void> {
+  public async releaseMinutes(params: {
+    idempotencyKey: string;
+    reservationId?: string;
+    reason?: string;
+  }): Promise<void> {
     if (this.supabase) {
       try {
         const { error } = await (this.supabase as any).rpc('release_organization_quota', {
-          p_reservation_id: crypto.randomUUID(),
+          p_reservation_id: params.reservationId || crypto.randomUUID(),
           p_idempotency_key: params.idempotencyKey,
         });
 

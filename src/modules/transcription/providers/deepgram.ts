@@ -1,4 +1,5 @@
 import { AppError } from '@/lib/errors/app-error';
+import { executeResilientSTTFetch } from '../resilient-fetch';
 import {
   type ITranscriptionProviderAdapter,
   type TranscriptionAudioInput,
@@ -11,9 +12,11 @@ import {
 export class DeepgramTranscriptionProvider implements ITranscriptionProviderAdapter {
   readonly name = 'deepgram' as const;
   private apiKey: string | undefined;
+  private defaultTimeoutMs: number;
 
-  constructor(apiKey?: string) {
+  constructor(apiKey?: string, timeoutMs = 30000) {
     this.apiKey = apiKey || process.env.DEEPGRAM_API_KEY;
+    this.defaultTimeoutMs = timeoutMs;
   }
 
   isConfigured(): boolean {
@@ -85,19 +88,20 @@ export class DeepgramTranscriptionProvider implements ITranscriptionProviderAdap
       });
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body,
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new AppError({
-        code: 'INTEGRATION_ERROR',
-        message: `Falha na chamada à API Deepgram (${response.status}): ${errText}`,
-      });
-    }
+    const response = await executeResilientSTTFetch(
+      url,
+      {
+        method: 'POST',
+        headers,
+        body,
+      },
+      {
+        timeoutMs: this.defaultTimeoutMs,
+        maxRetries: 2,
+        apiKeyToRedact: this.apiKey,
+        providerName: 'Deepgram',
+      }
+    );
 
     const data = await response.json();
     return this.normalizeDeepgramResponse(data, mappedLang || 'pt');

@@ -320,9 +320,11 @@ export interface IQuotaService {
     idempotencyKey: string;
     actualMinutes: number;
     meetingId?: string;
+    reservationId?: string;
   }): Promise<{ settled: boolean; settledMinutes: number }>;
   releaseMinutes(params: {
     idempotencyKey: string;
+    reservationId?: string;
     reason?: string;
   }): Promise<void>;
   checkQuotaAvailability(organizationId: string, requestedMinutes: number): Promise<{ available: boolean; remainingMinutes: number }>;

@@ -9,6 +9,23 @@ export class TextExportService implements ITextExportService {
     const hr = '================================================================================';
     const subHr = '--------------------------------------------------------------------------------';
 
+    // Prominent Status Banner for Unapproved / Draft Documents
+    if (document.approvalStatus === 'draft_ai') {
+      lines.push('********************************************************************************');
+      lines.push('*** ATENÇÃO: RASCUNHO NÃO APROVADO — GERADO POR INTELIGÊNCIA ARTIFICIAL      ***');
+      lines.push('*** DOCUMENTO PROVISÓRIO SEM VALIDADE JURÍDICA ATÉ VALIDAÇÃO HUMANA FORMAL   ***');
+      lines.push('********************************************************************************');
+      lines.push('');
+    } else if (
+      (document.approvalStatus as string) === 'in_review' ||
+      document.approvalStatus === 'pending_review'
+    ) {
+      lines.push('********************************************************************************');
+      lines.push('*** AVISO: DOCUMENTO EM REVISÃO — PENDENTE DE HOMOLOGAÇÃO FINAL               ***');
+      lines.push('********************************************************************************');
+      lines.push('');
+    }
+
     // Header Banner
     lines.push(hr);
     lines.push(`MEETWISE AI — ATA OFICIAL DE REUNIÃO`);

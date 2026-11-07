@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { AppError } from '@/lib/errors/app-error';
 import { defaultTranscriptionService, type ITranscriptionService } from '@/modules/transcription';
-import { calculateEstimatedMinutesCost, PLAN_LIMITS } from '@/modules/billing';
+import { QuotaService } from '@/modules/billing';
 import {
   type IProcessingQueue,
   type TranscriptionJobPayload,
@@ -11,17 +11,23 @@ import type { JobStatus } from '@/lib/supabase/database.types';
 
 export class ProcessingQueueService implements IProcessingQueue {
   private transcriptionService: ITranscriptionService;
+  private quotaService: QuotaService;
 
-  constructor(transcriptionService: ITranscriptionService = defaultTranscriptionService) {
+  constructor(
+    transcriptionService: ITranscriptionService = defaultTranscriptionService,
+    quotaService?: QuotaService
+  ) {
     this.transcriptionService = transcriptionService;
+    this.quotaService = quotaService || new QuotaService();
   }
 
   /**
    * Enqueues a transcription job:
-   * 1. Validates organization quota balance.
-   * 2. Atomically creates a quota reservation in usage_ledger.
+   * 1. Validates multi-tenant ownership of meeting and mediaAsset.
+   * 2. Atomically reserves minutes in organization_quota_reserves via QuotaService (calls reserve_organization_quota RPC).
    * 3. Creates the processing_jobs record with status 'queued'.
    * 4. Updates meeting status to 'queued'.
+   * If reservation or job insertion fails, aborts cleanly and rolls back.
    */
   async enqueueTranscriptionJob(
     payload: TranscriptionJobPayload
@@ -30,52 +36,50 @@ export class ProcessingQueueService implements IProcessingQueue {
     const idempotencyKey = `transcribe_${payload.meetingId}_${payload.mediaAssetId}`;
     const estimatedMinutes = Math.max(1, payload.estimatedMinutes || 15);
 
-    // 1. Check existing balance
-    const { data: ledgerEntries, error: ledgerError } = await supabase
-      .from('usage_ledger')
-      .select('quantity, status')
+    // 1. Multi-tenant boundary validation
+    const { data: meeting, error: meetError } = await supabase
+      .from('meetings')
+      .select('id, organization_id')
+      .eq('id', payload.meetingId)
       .eq('organization_id', payload.organizationId)
-      .in('status', ['settled', 'reserved']);
+      .maybeSingle();
 
-    if (!ledgerError && ledgerEntries) {
-      const usedMinutes = ledgerEntries.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-      const limit = PLAN_LIMITS.pro.monthlyMinutes; // Default plan limit baseline
-      if (usedMinutes + estimatedMinutes > limit) {
-        throw new AppError({
-          code: 'QUOTA_EXCEEDED',
-          message: `Quota insuficiente de minutos para transcrição (${usedMinutes}/${limit}m consumidos).`,
-        });
-      }
+    if (meetError || !meeting) {
+      throw new AppError({
+        code: 'FORBIDDEN',
+        message: 'Acesso negado: Reunião não encontrada ou não pertence a esta organização.',
+        statusCode: 403,
+      });
     }
 
-    // 2. Atomically reserve quota in usage_ledger
-    const estimatedCost = calculateEstimatedMinutesCost(estimatedMinutes);
-    const { data: reservation, error: resError } = await supabase
-      .from('usage_ledger')
-      .upsert(
-        {
-          organization_id: payload.organizationId,
-          meeting_id: payload.meetingId,
-          operation: 'transcription_minutes',
-          quantity: estimatedMinutes,
-          unit: 'minutes',
-          cost_cents_usd: estimatedCost,
-          idempotency_key: idempotencyKey,
-          status: 'reserved',
-          metadata: {
-            media_asset_id: payload.mediaAssetId,
-            language: payload.language || 'pt',
-          },
-        },
-        { onConflict: 'idempotency_key' }
-      )
-      .select('id')
-      .single();
+    const { data: mediaAsset, error: mediaError } = await supabase
+      .from('media_assets')
+      .select('id, organization_id, meeting_id, storage_path, mime_type')
+      .eq('id', payload.mediaAssetId)
+      .eq('organization_id', payload.organizationId)
+      .eq('meeting_id', payload.meetingId)
+      .maybeSingle();
 
-    if (resError && !resError.message.includes('duplicate')) {
+    if (mediaError || !mediaAsset) {
       throw new AppError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: `Falha ao reservar quota: ${resError.message}`,
+        code: 'FORBIDDEN',
+        message: 'Acesso negado: Ativo multimédia não encontrado ou não pertence a esta reunião/organização.',
+        statusCode: 403,
+      });
+    }
+
+    // 2. Atomic Quota Reservation via QuotaService (enforces real plan limits & reserve_organization_quota RPC)
+    const reservation = await this.quotaService.reserveMinutes({
+      organizationId: payload.organizationId,
+      minutes: estimatedMinutes,
+      idempotencyKey,
+    });
+
+    if (!reservation.reserved) {
+      throw new AppError({
+        code: 'QUOTA_EXCEEDED',
+        message: 'Falha na reserva atómica de quota para processamento da reunião.',
+        statusCode: 429,
       });
     }
 
@@ -93,7 +97,8 @@ export class ProcessingQueueService implements IProcessingQueue {
             media_asset_id: payload.mediaAssetId,
             language: payload.language || 'pt',
             diarize: payload.diarize !== false,
-            reservation_id: reservation?.id,
+            reservation_id: reservation.reservationId,
+            estimated_minutes: estimatedMinutes,
           },
         },
         { onConflict: 'idempotency_key' }
@@ -102,6 +107,13 @@ export class ProcessingQueueService implements IProcessingQueue {
       .single();
 
     if (jobError || !job) {
+      // Release reserved quota on job creation failure
+      await this.quotaService.releaseMinutes({
+        idempotencyKey,
+        reservationId: reservation.reservationId,
+        reason: 'Falha ao persistir job de processamento',
+      }).catch(() => {});
+
       throw new AppError({
         code: 'INTERNAL_SERVER_ERROR',
         message: `Falha ao criar job de processamento: ${jobError?.message || 'Erro desconhecido'}`,
@@ -122,18 +134,18 @@ export class ProcessingQueueService implements IProcessingQueue {
 
   /**
    * Executes the transcription worker:
-   * 1. Changes job status to 'processing' and meetings to 'processing'.
+   * 1. Atomically claims the job with conditional UPDATE WHERE status = 'queued'.
    * 2. Reads media asset and calls transcription service.
    * 3. Persists transcript_segments with timestamps.
    * 4. Synchronizes identified speakers with meeting_participants.
-   * 5. Settles usage_ledger quota with actual duration.
+   * 5. Settles quota atomically via QuotaService (calls settle_organization_quota RPC).
    * 6. Marks job and meeting as 'completed'.
    * In case of failure: records error, releases reserved quota, and marks as 'failed'.
    */
   async processJob(jobId: string): Promise<JobExecutionResult> {
     const supabase = createAdminClient();
 
-    // Fetch job
+    // 1. Fetch job to inspect metadata and verify existence
     const { data: job, error: fetchError } = await supabase
       .from('processing_jobs')
       .select('*')
@@ -147,35 +159,55 @@ export class ProcessingQueueService implements IProcessingQueue {
       });
     }
 
-    // Mark as processing
-    await supabase
+    // 2. ATOMIC CLAIM: Only acquire the job if its current status is 'queued'
+    const { data: claimedJob, error: claimError } = await supabase
       .from('processing_jobs')
       .update({
         status: 'processing',
         attempts: (job.attempts || 0) + 1,
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', jobId);
+      .eq('id', jobId)
+      .eq('status', 'queued')
+      .select('*')
+      .maybeSingle();
+
+    if (claimError || !claimedJob) {
+      throw new AppError({
+        code: 'JOB_ALREADY_CLAIMED',
+        message: `Job ${jobId} já está a ser processado por outro worker ou não está no estado 'queued'.`,
+        statusCode: 409,
+      });
+    }
 
     await supabase
       .from('meetings')
       .update({ status: 'processing' })
       .eq('id', job.meeting_id);
 
+    const metadata = (job.metadata as Record<string, any>) || {};
+
     try {
-      const metadata = (job.metadata as Record<string, any>) || {};
       const mediaAssetId = metadata.media_asset_id;
 
       // Fetch media asset
-      const { data: mediaAsset } = await supabase
+      const { data: mediaAsset, error: mediaAssetError } = await supabase
         .from('media_assets')
         .select('*')
         .eq('id', mediaAssetId)
         .single();
 
+      if (mediaAssetError || !mediaAsset) {
+        throw new AppError({
+          code: 'NOT_FOUND',
+          message: `Ativo multimédia ${mediaAssetId} não encontrado.`,
+        });
+      }
+
       // Transcribe via transcription engine
       const transcriptionResult = await this.transcriptionService.transcribe(
         {
-          audioUrl: mediaAsset?.storage_path,
+          audioUrl: mediaAsset.storage_path,
         },
         {
           language: metadata.language || 'pt',
@@ -225,18 +257,14 @@ export class ProcessingQueueService implements IProcessingQueue {
         }
       }
 
-      // Settle Quota atomically in usage_ledger
+      // 5. Settle Quota atomically via QuotaService (calls settle_organization_quota RPC)
       const actualMinutes = Math.max(1, Math.ceil(transcriptionResult.durationSeconds / 60));
-      const actualCost = calculateEstimatedMinutesCost(actualMinutes);
-
-      await supabase
-        .from('usage_ledger')
-        .update({
-          status: 'settled',
-          quantity: actualMinutes,
-          cost_cents_usd: actualCost,
-        })
-        .eq('idempotency_key', job.idempotency_key);
+      await this.quotaService.settleMinutes({
+        idempotencyKey: job.idempotency_key,
+        reservationId: metadata.reservation_id,
+        actualMinutes,
+        meetingId: job.meeting_id,
+      });
 
       // Mark meeting as completed
       await supabase
@@ -288,13 +316,12 @@ export class ProcessingQueueService implements IProcessingQueue {
         .update({ status: 'failed' })
         .eq('id', job.meeting_id);
 
-      // Release reserved quota
-      await supabase
-        .from('usage_ledger')
-        .update({
-          status: 'cancelled',
-        })
-        .eq('idempotency_key', job.idempotency_key);
+      // Release reserved quota atomically via QuotaService (calls release_organization_quota RPC)
+      await this.quotaService.releaseMinutes({
+        idempotencyKey: job.idempotency_key,
+        reservationId: metadata.reservation_id,
+        reason: errorMessage,
+      }).catch(() => {});
 
       return {
         jobId,
@@ -302,6 +329,58 @@ export class ProcessingQueueService implements IProcessingQueue {
         error: errorMessage,
       };
     }
+  }
+
+  /**
+   * Recovers jobs that were left in 'processing' before a worker crash or timeout.
+   * Resets jobs exceeding stale threshold back to 'queued' (if attempts < max_attempts)
+   * or marks them as 'failed' and releases reserved quota.
+   */
+  async recoverStaleJobs(staleThresholdMinutes = 15): Promise<{ recovered: number; failed: number }> {
+    const supabase = createAdminClient();
+    const staleCutoff = new Date(Date.now() - staleThresholdMinutes * 60 * 1000).toISOString();
+
+    const { data: staleJobs } = await supabase
+      .from('processing_jobs')
+      .select('*')
+      .eq('status', 'processing')
+      .lt('updated_at', staleCutoff);
+
+    let recovered = 0;
+    let failed = 0;
+
+    for (const job of staleJobs || []) {
+      const metadata = (job.metadata as Record<string, any>) || {};
+      if ((job.attempts || 0) < (job.max_attempts || 3)) {
+        await supabase
+          .from('processing_jobs')
+          .update({
+            status: 'queued',
+            last_error: `Recuperado após paragem inesperada do worker às ${new Date().toISOString()}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', job.id);
+        recovered++;
+      } else {
+        await supabase
+          .from('processing_jobs')
+          .update({
+            status: 'failed',
+            last_error: 'Excedido número máximo de tentativas após crash.',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', job.id);
+
+        await this.quotaService.releaseMinutes({
+          idempotencyKey: job.idempotency_key,
+          reservationId: metadata.reservation_id,
+          reason: 'Job falhado permanentemente após crash recovery',
+        }).catch(() => {});
+        failed++;
+      }
+    }
+
+    return { recovered, failed };
   }
 
   /**

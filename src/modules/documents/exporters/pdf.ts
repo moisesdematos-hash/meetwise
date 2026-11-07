@@ -369,10 +369,34 @@ export class PdfExportService implements IPdfExportService {
             { width: contentWidth, align: 'center' }
           );
 
-        // Two-pass pagination: Footer on each page
+        // Two-pass pagination: Watermark and Footer on each page
         const range = doc.bufferedPageRange();
+        const isDraft = document.approvalStatus === 'draft_ai';
+        const isInReview =
+          (document.approvalStatus as string) === 'in_review' ||
+          document.approvalStatus === 'pending_review';
+
         for (let i = range.start; i < range.start + range.count; i++) {
           doc.switchToPage(i);
+
+          // Diagonal watermark for unapproved documents (draft_ai or in_review)
+          if (isDraft || isInReview) {
+            doc.save();
+            doc.opacity(0.12);
+            doc.fontSize(42);
+            doc.font('Helvetica-Bold');
+            doc.fillColor(isDraft ? '#DC2626' : '#D97706');
+            doc.rotate(-45, { origin: [pageWidth / 2, pageHeight / 2] });
+            const watermarkText = isDraft
+              ? 'RASCUNHO NÃO APROVADO'
+              : 'DOCUMENTO EM REVISÃO';
+            doc.text(watermarkText, 0, pageHeight / 2 - 20, {
+              align: 'center',
+              width: pageWidth,
+            });
+            doc.restore();
+          }
+
           doc
             .fontSize(8)
             .font('Helvetica')

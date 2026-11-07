@@ -41,6 +41,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 1b. Verify meeting exists and belongs to organization
+    const { data: meeting, error: meetError } = await supabase
+      .from('meetings')
+      .select('id')
+      .eq('id', meetingId)
+      .eq('organization_id', organizationId)
+      .maybeSingle();
+
+    if (meetError || !meeting) {
+      return NextResponse.json(
+        { error: 'Reunião não encontrada nesta organização' },
+        { status: 404 }
+      );
+    }
+
     // 2. Validate media rules (format, extension, 500MB max)
     validateMediaUpload({ mimeType, sizeBytes, filename });
     const extension = validateFileExtension(filename);
