@@ -63,10 +63,15 @@ export async function POST(req: NextRequest) {
     const assetId = crypto.randomUUID();
     const storagePath = buildSecureStoragePath(organizationId, meetingId, assetId, extension);
 
-    const admin = createAdminClient();
+    // Prefer authenticated user client (respects RLS) or admin client if valid service role key is configured
+    const isServiceRoleConfigured = Boolean(
+      process.env.SUPABASE_SERVICE_ROLE_KEY &&
+      !process.env.SUPABASE_SERVICE_ROLE_KEY.includes('mock')
+    );
+    const clientToUse = isServiceRoleConfigured ? createAdminClient() : supabase;
 
     // 3. Register media asset record
-    const { data: asset, error: assetError } = await admin
+    const { data: asset, error: assetError } = await clientToUse
       .from('media_assets')
       .insert({
         id: assetId,
@@ -89,9 +94,16 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Generate presigned upload URL
-    const { data: uploadData, error: uploadError } = await admin.storage
+    const { data: uploadData, error: uploadError } = await clientToUse.storage
       .from('meeting_recordings')
       .createSignedUploadUrl(storagePath);
+
+    if (uploadError) {
+      return NextResponse.json(
+        { error: `Erro ao gerar URL de upload: ${uploadError.message}` },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
