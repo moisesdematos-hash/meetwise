@@ -55,6 +55,12 @@ export function LiveMeetingRecorder({
   const [saveLocalCopy, setSaveLocalCopy] = useState(true);
   const [recordedBytes, setRecordedBytes] = useState(0);
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
+  const [recoveredSession, setRecoveredSession] = useState<{
+    segments: LiveSegmentItem[];
+    elapsedSeconds: number;
+  } | null>(null);
+
+  const recoveryStorageKey = `meetwise_live_recovery_${meetingId}`;
 
   // Speakers management during live session
   const [speakers, setSpeakers] = useState<string[]>([
@@ -100,6 +106,59 @@ export function LiveMeetingRecorder({
   useEffect(() => {
     elapsedRef.current = elapsedSeconds;
   }, [elapsedSeconds]);
+
+  // Check for any crash-recovered segments in localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(recoveryStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed?.segments) && parsed.segments.length > 0) {
+          setRecoveredSession({
+            segments: parsed.segments,
+            elapsedSeconds: Number(parsed.elapsedSeconds || 30),
+          });
+        }
+      }
+    } catch {
+      // Ignore storage access errors
+    }
+  }, [recoveryStorageKey]);
+
+  // Continuously auto-save live segments to localStorage during recording
+  useEffect(() => {
+    if ((status === 'recording' || status === 'paused') && liveSegments.length > 0) {
+      try {
+        localStorage.setItem(
+          recoveryStorageKey,
+          JSON.stringify({
+            segments: liveSegments,
+            elapsedSeconds,
+            updatedAt: new Date().toISOString(),
+          })
+        );
+      } catch {
+        // Ignore storage quota errors
+      }
+    }
+  }, [liveSegments, elapsedSeconds, status, recoveryStorageKey]);
+
+  // Protect against accidental tab closure / F5 refresh while recording is active
+  useEffect(() => {
+    if (status !== 'recording' && status !== 'paused') return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue =
+        'Tem uma gravação de reunião em curso. Tem a certeza de que pretende sair?';
+      return e.returnValue;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [status]);
 
   // Dynamically update live voice amplification gain in real time during recording
   useEffect(() => {
@@ -700,6 +759,9 @@ export function LiveMeetingRecorder({
       }
 
       setStatus('completed');
+      try {
+        localStorage.removeItem(recoveryStorageKey);
+      } catch {}
       onComplete({
         mediaAssetId,
         jobId: dispatchData.jobId,
@@ -736,6 +798,47 @@ export function LiveMeetingRecorder({
       {/* Configuration Header before starting */}
       {status === 'idle' && (
         <div className="space-y-4">
+          {recoveredSession && (
+            <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex items-center justify-between gap-3">
+              <div className="text-xs text-amber-900 dark:text-amber-200">
+                <span className="font-bold block">
+                  🔄 Sessão Interrompida Detetada ({recoveredSession.segments.length} intervenções guardadas)
+                </span>
+                <span className="text-[11px]">
+                  Encontrámos um backup automático desta reunião. Pode gerar a Ata imediatamente a partir dos dados recuperados.
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Button
+                  type="button"
+                  variant="brand"
+                  size="sm"
+                  onClick={() => {
+                    setLiveSegments(recoveredSession.segments);
+                    setElapsedSeconds(recoveredSession.elapsedSeconds);
+                    elapsedRef.current = recoveredSession.elapsedSeconds;
+                    setRecoveredSession(null);
+                    setTimeout(() => handleStopAndGenerateMinutes(), 100);
+                  }}
+                >
+                  Restaurar e Gerar Ata
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecoveredSession(null);
+                    try {
+                      localStorage.removeItem(recoveryStorageKey);
+                    } catch {}
+                  }}
+                  className="text-xs text-amber-700 hover:underline px-2"
+                >
+                  Ignorar
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-900/60 flex items-start gap-3">
             <div className="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

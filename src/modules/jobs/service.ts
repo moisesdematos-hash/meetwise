@@ -298,10 +298,33 @@ export class ProcessingQueueService implements IProcessingQueue {
           simulated: false,
         };
       } else {
+        let resolvedAudioUrl = mediaAsset.storage_path;
+        const hasExternalSttKey = Boolean(
+          process.env.DEEPGRAM_API_KEY || process.env.GLADIA_API_KEY
+        );
+
+        if (
+          hasExternalSttKey &&
+          resolvedAudioUrl &&
+          !resolvedAudioUrl.startsWith('http') &&
+          typeof supabase.storage?.from === 'function'
+        ) {
+          try {
+            const { data: signedData } = await supabase.storage
+              .from(mediaAsset.storage_bucket || 'meeting_recordings')
+              .createSignedUrl(mediaAsset.storage_path, 300);
+            if (signedData?.signedUrl) {
+              resolvedAudioUrl = signedData.signedUrl;
+            }
+          } catch {
+            // Fallback to storage_path
+          }
+        }
+
         // Transcribe via transcription engine
         transcriptionResult = await this.transcriptionService.transcribe(
           {
-            audioUrl: mediaAsset.storage_path,
+            audioUrl: resolvedAudioUrl,
           },
           {
             language: metadata.language || 'pt',

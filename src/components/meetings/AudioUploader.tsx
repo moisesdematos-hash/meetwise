@@ -28,6 +28,7 @@ export function AudioUploader({
   onCancel,
 }: AudioUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [detectedDurationSeconds, setDetectedDurationSeconds] = useState<number | null>(null);
   const [language, setLanguage] = useState('pt');
   const [diarize, setDiarize] = useState(true);
   const [autoGenerateMinutes, setAutoGenerateMinutes] = useState(true);
@@ -60,6 +61,28 @@ export function AudioUploader({
     }
 
     setFile(selectedFile);
+    setDetectedDurationSeconds(null);
+
+    // Extract exact audio/video duration in seconds using HTML5 Media Element metadata
+    try {
+      const objectUrl = URL.createObjectURL(selectedFile);
+      const mediaEl = document.createElement(
+        selectedFile.type.startsWith('video/') ? 'video' : 'audio'
+      );
+      mediaEl.preload = 'metadata';
+      mediaEl.onloadedmetadata = () => {
+        if (mediaEl.duration && Number.isFinite(mediaEl.duration) && mediaEl.duration > 0) {
+          setDetectedDurationSeconds(Math.round(mediaEl.duration));
+        }
+        URL.revokeObjectURL(objectUrl);
+      };
+      mediaEl.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+      };
+      mediaEl.src = objectUrl;
+    } catch {
+      // Non-fatal if metadata extraction fails
+    }
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -117,6 +140,11 @@ export function AudioUploader({
       setProgress(75);
 
       // 3. Dispatch transcription job
+      const effectiveDurationSeconds =
+        detectedDurationSeconds && detectedDurationSeconds > 0
+          ? detectedDurationSeconds
+          : Math.max(30, Math.round(file.size / 16000));
+
       const dispatchResponse = await fetch('/api/transcription/dispatch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -126,7 +154,8 @@ export function AudioUploader({
           mediaAssetId,
           language,
           diarize,
-          estimatedMinutes: Math.max(1, Math.round(file.size / (16000 * 60))),
+          durationSeconds: effectiveDurationSeconds,
+          estimatedMinutes: Math.max(1, Math.ceil(effectiveDurationSeconds / 60)),
           autoProcess: true,
         }),
       });
@@ -215,7 +244,11 @@ export function AudioUploader({
           <div>
             <p className="text-sm font-semibold text-slate-900 dark:text-white mb-1">{file.name}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {(file.size / (1024 * 1024)).toFixed(2)} MB • Pronto para carregar
+              {(file.size / (1024 * 1024)).toFixed(2)} MB
+              {detectedDurationSeconds
+                ? ` • Duração: ${Math.floor(detectedDurationSeconds / 60)}m ${(detectedDurationSeconds % 60).toString().padStart(2, '0')}s`
+                : ''}{' '}
+              • Pronto para carregar
             </p>
           </div>
         ) : (
