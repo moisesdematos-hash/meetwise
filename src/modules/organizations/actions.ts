@@ -1,20 +1,9 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { generateSlug, createOrganizationSchema } from './index';
-import { z } from 'zod';
+import { generateSlug, completeOnboardingSchema, type CompleteOnboardingInput } from './index';
 
-export const completeOnboardingSchema = z.object({
-  fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  locale: z.enum(['pt', 'pt-BR', 'en', 'es', 'fr']).default('pt'),
-  roleTitle: z.string().optional(),
-  organizationName: z.string().trim().min(2, 'Nome da organização deve ter pelo menos 2 caracteres'),
-  transcriptionDialect: z.string().default('pt-PT'),
-  minuteTemplate: z.string().default('executive'),
-  timezone: z.string().default('Europe/Lisbon'),
-});
-
-export type CompleteOnboardingInput = z.infer<typeof completeOnboardingSchema>;
+export type { CompleteOnboardingInput };
 
 export async function completeOnboarding(input: CompleteOnboardingInput) {
   const validated = completeOnboardingSchema.parse(input);

@@ -17,9 +17,20 @@ export const inviteMemberSchema = z.object({
   role: z.enum(['admin', 'manager', 'member', 'viewer']),
 });
 
+export const completeOnboardingSchema = z.object({
+  fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  locale: z.enum(['pt', 'pt-BR', 'en', 'es', 'fr']).default('pt'),
+  roleTitle: z.string().optional(),
+  organizationName: z.string().trim().min(2, 'Nome da organização deve ter pelo menos 2 caracteres'),
+  transcriptionDialect: z.string().default('pt-PT'),
+  minuteTemplate: z.string().default('executive'),
+  timezone: z.string().default('Europe/Lisbon'),
+});
+
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
 export type UpdateMemberRoleInput = z.infer<typeof updateMemberRoleSchema>;
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
+export type CompleteOnboardingInput = z.infer<typeof completeOnboardingSchema>;
 
 export function generateSlug(name: string): string {
   const base = name

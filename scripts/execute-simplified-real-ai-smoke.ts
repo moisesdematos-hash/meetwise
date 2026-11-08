@@ -116,10 +116,10 @@ async function runSimplifiedSmokeTest() {
     meetingTitle: 'Reunião de Verificação Real Deepgram + Gemini',
     language: 'pt',
     templateType: 'formal',
-    segments: segments.map(s => ({
+    segments: segments.map((s: any) => ({
       speaker_label: s.speaker_label,
-      start_time: (s.start_time_ms ? s.start_time_ms / 1000 : (s as any).start_time || 0),
-      end_time: (s.end_time_ms ? s.end_time_ms / 1000 : (s as any).end_time || 1),
+      start_time: s.start_time_ms ? s.start_time_ms / 1000 : s.start_time || 0,
+      end_time: s.end_time_ms ? s.end_time_ms / 1000 : s.end_time || 1,
       text: s.text,
     })),
   });

@@ -3,8 +3,8 @@ import {
   generateSlug,
   createOrganizationSchema,
   validateOwnerRemoval,
+  completeOnboardingSchema,
 } from '@/modules/organizations';
-import { completeOnboardingSchema } from '@/modules/organizations/actions';
 import { AppError } from '@/lib/errors/app-error';
 
 describe('Organizations & Onboarding Modules', () => {
