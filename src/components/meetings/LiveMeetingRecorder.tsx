@@ -49,6 +49,8 @@ export function LiveMeetingRecorder({
   const [templateType, setTemplateType] = useState<TemplateType>('formal');
   const [autoGenerateMinutes, setAutoGenerateMinutes] = useState(true);
   const [saveLocalCopy, setSaveLocalCopy] = useState(true);
+  const [recordedBytes, setRecordedBytes] = useState(0);
+  const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
 
   // Speakers management during live session
   const [speakers, setSpeakers] = useState<string[]>([
@@ -247,6 +249,11 @@ export function LiveMeetingRecorder({
   const handleStartRecording = async () => {
     setError(null);
     audioChunksRef.current = [];
+    setRecordedBytes(0);
+    if (previewAudioUrl) {
+      URL.revokeObjectURL(previewAudioUrl);
+      setPreviewAudioUrl(null);
+    }
     setLiveSegments([]);
     setElapsedSeconds(0);
     elapsedRef.current = 0;
@@ -274,6 +281,8 @@ export function LiveMeetingRecorder({
       recorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
           audioChunksRef.current.push(e.data);
+          const totalBytes = audioChunksRef.current.reduce((acc, chunk) => acc + chunk.size, 0);
+          setRecordedBytes(totalBytes);
         }
       };
 
@@ -297,11 +306,44 @@ export function LiveMeetingRecorder({
     }
   };
 
+  const buildSafeFilename = () => {
+    const safeTitle = (meetingTitle || 'Reuniao')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9-_]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    return `Gravacao-${safeTitle}.webm`;
+  };
+
+  const handleDownloadCurrentAudio = () => {
+    if (audioChunksRef.current.length === 0) return;
+    const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+    const currentBlob = new Blob(audioChunksRef.current, { type: mimeType });
+    const blobUrl = URL.createObjectURL(currentBlob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = buildSafeFilename();
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
+
   const handlePauseResume = () => {
     const recorder = mediaRecorderRef.current;
     if (!recorder) return;
 
     if (status === 'recording') {
+      try {
+        recorder.requestData();
+      } catch {}
       recorder.pause();
       isRecordingRef.current = false;
       if (timerIntervalRef.current) {
@@ -314,6 +356,16 @@ export function LiveMeetingRecorder({
         } catch {}
       }
       setAudioLevels(new Array(16).fill(8));
+      // Build preview audio URL for the recorded file so far
+      setTimeout(() => {
+        if (audioChunksRef.current.length > 0) {
+          const blob = new Blob(audioChunksRef.current, {
+            type: recorder.mimeType || 'audio/webm',
+          });
+          if (previewAudioUrl) URL.revokeObjectURL(previewAudioUrl);
+          setPreviewAudioUrl(URL.createObjectURL(blob));
+        }
+      }, 150);
       setStatus('paused');
     } else if (status === 'paused') {
       recorder.resume();
@@ -906,26 +958,70 @@ export function LiveMeetingRecorder({
               </Button>
             </>
           ) : (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handlePauseResume}
-              >
-                {status === 'recording' ? '⏸ Pausar Reunião' : '▶ Retomar Reunião'}
-              </Button>
+            <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              {/* Recorded Audio File Badge / Download & Preview right next to Pause button */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadCurrentAudio}
+                  disabled={recordedBytes === 0}
+                  title="Clique para transferir o ficheiro de áudio gravado até ao momento"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors text-left disabled:opacity-50"
+                >
+                  <svg
+                    className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                    />
+                  </svg>
+                  <div className="text-[11px] leading-tight">
+                    <span className="font-bold text-slate-800 dark:text-slate-100 block">
+                      {buildSafeFilename()}
+                    </span>
+                    <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">
+                      {formatFileSize(recordedBytes)} • ⬇ Guardar Áudio
+                    </span>
+                  </div>
+                </button>
 
-              <Button
-                type="button"
-                variant="brand"
-                size="sm"
-                onClick={handleStopAndGenerateMinutes}
-                className="flex items-center gap-2"
-              >
-                <span>⏹ Terminar Reunião e Gerar Ata</span>
-              </Button>
-            </>
+                {status === 'paused' && previewAudioUrl && (
+                  <audio
+                    controls
+                    src={previewAudioUrl}
+                    className="h-8 max-w-[200px]"
+                    title="Ouvir gravação até ao momento"
+                  />
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePauseResume}
+                >
+                  {status === 'recording' ? '⏸ Pausar Reunião' : '▶ Retomar Reunião'}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="brand"
+                  size="sm"
+                  onClick={handleStopAndGenerateMinutes}
+                  className="flex items-center gap-2"
+                >
+                  <span>⏹ Terminar Reunião e Gerar Ata</span>
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       )}
