@@ -48,6 +48,7 @@ export function LiveMeetingRecorder({
   const [language, setLanguage] = useState('pt-PT');
   const [templateType, setTemplateType] = useState<TemplateType>('formal');
   const [autoGenerateMinutes, setAutoGenerateMinutes] = useState(true);
+  const [saveLocalCopy, setSaveLocalCopy] = useState(true);
 
   // Speakers management during live session
   const [speakers, setSpeakers] = useState<string[]>([
@@ -406,6 +407,31 @@ export function LiveMeetingRecorder({
     }
 
     try {
+      // Optional Step 0: Automatically save a local copy to the user's computer (Downloads folder)
+      if (saveLocalCopy && audioBlob.size > 0) {
+        try {
+          const safeTitle = (meetingTitle || 'Reuniao')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9-_]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+          const dateStamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+          const localFilename = `Gravacao-${safeTitle}-${dateStamp}.webm`;
+
+          const blobUrl = URL.createObjectURL(audioBlob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = localFilename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        } catch (dlErr) {
+          console.warn('Local download warning:', dlErr);
+        }
+      }
+
       // STEP 1: Upload recorded audio to Supabase Storage
       setStatus('uploading_audio');
 
@@ -588,21 +614,40 @@ export function LiveMeetingRecorder({
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-            <div>
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
-                Gerar Ata automaticamente ao terminar gravação
-              </span>
-              <span className="text-[11px] text-slate-500">
-                Cria de imediato o resumo executivo, decisões, tarefas e ata estruturada.
-              </span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+              <div>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                  Gerar Ata automaticamente ao terminar gravação
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Cria de imediato o resumo executivo, decisões, tarefas e ata estruturada.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={autoGenerateMinutes}
+                onChange={(e) => setAutoGenerateMinutes(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              />
             </div>
-            <input
-              type="checkbox"
-              checked={autoGenerateMinutes}
-              onChange={(e) => setAutoGenerateMinutes(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-            />
+
+            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+              <div>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                  Guardar também cópia do áudio no meu computador (Transferências)
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Descarrega automaticamente o ficheiro .webm para a sua pasta Downloads ao encerrar.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={saveLocalCopy}
+                onChange={(e) => setSaveLocalCopy(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              />
+            </div>
           </div>
         </div>
       )}

@@ -196,8 +196,21 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
             </select>
           </div>
 
-          {/* Mute / Volume */}
-          <div className="flex items-center gap-1">
+          {/* Mute / Volume & Local Download */}
+          <div className="flex items-center gap-2">
+            {src && src !== '/sample-audio.mp3' && (
+              <a
+                href={src}
+                download={`Gravacao-${(title || 'Reuniao').replace(/[^a-zA-Z0-9-_]/g, '-')}.webm`}
+                title="Descarregar ficheiro de áudio para o computador"
+                className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>Guardar Áudio</span>
+              </a>
+            )}
             <button
               type="button"
               onClick={() => setIsMuted(!isMuted)}
