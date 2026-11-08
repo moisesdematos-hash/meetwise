@@ -49,6 +49,8 @@ export function LiveMeetingRecorder({
   const [templateType, setTemplateType] = useState<TemplateType>('formal');
   const [recordingSource, setRecordingSource] = useState<'mic_only' | 'online_meeting'>('mic_only');
   const [systemAudioActive, setSystemAudioActive] = useState(false);
+  const [dspNoiseFilter, setDspNoiseFilter] = useState(true);
+  const [voiceGainMultiplier, setVoiceGainMultiplier] = useState<number>(2.0);
   const [autoGenerateMinutes, setAutoGenerateMinutes] = useState(true);
   const [saveLocalCopy, setSaveLocalCopy] = useState(true);
   const [recordedBytes, setRecordedBytes] = useState(0);
@@ -78,6 +80,7 @@ export function LiveMeetingRecorder({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const displayStreamRef = useRef<MediaStream | null>(null);
   const mixerAudioCtxRef = useRef<AudioContext | null>(null);
+  const voiceGainNodeRef = useRef<GainNode | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const elapsedRef = useRef<number>(0);
@@ -97,6 +100,17 @@ export function LiveMeetingRecorder({
   useEffect(() => {
     elapsedRef.current = elapsedSeconds;
   }, [elapsedSeconds]);
+
+  // Dynamically update live voice amplification gain in real time during recording
+  useEffect(() => {
+    if (voiceGainNodeRef.current && mixerAudioCtxRef.current) {
+      voiceGainNodeRef.current.gain.setTargetAtTime(
+        voiceGainMultiplier,
+        mixerAudioCtxRef.current.currentTime,
+        0.05
+      );
+    }
+  }, [voiceGainMultiplier]);
 
   const cleanupMediaResources = useCallback(() => {
     isRecordingRef.current = false;
@@ -285,9 +299,9 @@ export function LiveMeetingRecorder({
       });
 
       mediaStreamRef.current = micStream;
-      let finalRecordingStream: MediaStream = micStream;
+      let sysAudioTracks: MediaStreamTrack[] = [];
 
-      // 2. If Online Meeting mode (Zoom / WhatsApp / Teams / Meet), capture system/tab audio and mix with mic
+      // 2. If Online Meeting mode (Zoom / WhatsApp / Teams / Meet), capture system/tab audio
       if (recordingSource === 'online_meeting' && navigator.mediaDevices.getDisplayMedia) {
         try {
           const displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -300,29 +314,11 @@ export function LiveMeetingRecorder({
           });
 
           displayStreamRef.current = displayStream;
-          const sysAudioTracks = displayStream.getAudioTracks();
+          sysAudioTracks = displayStream.getAudioTracks();
 
           // Stop video track immediately since we only need the audio mix
           displayStream.getVideoTracks().forEach((vTrack) => vTrack.stop());
-
-          if (sysAudioTracks.length > 0) {
-            const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-            const mixerCtx = new AudioCtx();
-            mixerAudioCtxRef.current = mixerCtx;
-
-            const destination = mixerCtx.createMediaStreamDestination();
-
-            const micSource = mixerCtx.createMediaStreamSource(micStream);
-            micSource.connect(destination);
-
-            const sysSource = mixerCtx.createMediaStreamSource(new MediaStream(sysAudioTracks));
-            sysSource.connect(destination);
-
-            finalRecordingStream = destination.stream;
-            setSystemAudioActive(true);
-          } else {
-            setSystemAudioActive(false);
-          }
+          setSystemAudioActive(sysAudioTracks.length > 0);
         } catch {
           // If user cancels screen share dialog, continue gracefully with microphone
           setSystemAudioActive(false);
@@ -331,13 +327,81 @@ export function LiveMeetingRecorder({
         setSystemAudioActive(false);
       }
 
+      // 3. Build Web Audio API DSP Studio Pipeline:
+      //    [Mic (+ System Audio)] -> [Highpass 85Hz] -> [Lowpass 7.5kHz] -> [Vocal Presence +3.5dB] -> [Voice Booster Gain 1x..4x] -> [Dynamic Compressor] -> [Destination]
+      let finalRecordingStream: MediaStream = micStream;
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const dspCtx = new AudioCtx();
+        mixerAudioCtxRef.current = dspCtx;
+
+        const destination = dspCtx.createMediaStreamDestination();
+        const micSource = dspCtx.createMediaStreamSource(micStream);
+
+        // Pre-Amplifier Gain Node (1.0x up to 4.0x for quiet/distant speakers)
+        const gainNode = dspCtx.createGain();
+        gainNode.gain.value = voiceGainMultiplier;
+        voiceGainNodeRef.current = gainNode;
+
+        // Dynamic Range Compressor & Anti-Clipping Limiter (boosts whispers, caps loud spikes)
+        const compressor = dspCtx.createDynamicsCompressor();
+        compressor.threshold.value = -32;
+        compressor.knee.value = 24;
+        compressor.ratio.value = 6;
+        compressor.attack.value = 0.003;
+        compressor.release.value = 0.25;
+
+        if (dspNoiseFilter) {
+          // High-pass filter @ 85 Hz: removes AC hum, laptop fan rumble & table vibrations
+          const highpass = dspCtx.createBiquadFilter();
+          highpass.type = 'highpass';
+          highpass.frequency.value = 85;
+
+          // Low-pass filter @ 7500 Hz: removes high-frequency electronic hiss
+          const lowpass = dspCtx.createBiquadFilter();
+          lowpass.type = 'lowpass';
+          lowpass.frequency.value = 7500;
+
+          // Vocal presence peaking EQ @ 2500 Hz (+3.5 dB): sharpens consonant intelligibility
+          const presence = dspCtx.createBiquadFilter();
+          presence.type = 'peaking';
+          presence.frequency.value = 2500;
+          presence.Q.value = 1.0;
+          presence.gain.value = 3.5;
+
+          micSource.connect(highpass);
+          if (sysAudioTracks.length > 0) {
+            const sysSource = dspCtx.createMediaStreamSource(new MediaStream(sysAudioTracks));
+            sysSource.connect(highpass);
+          }
+
+          highpass.connect(lowpass);
+          lowpass.connect(presence);
+          presence.connect(gainNode);
+        } else {
+          micSource.connect(gainNode);
+          if (sysAudioTracks.length > 0) {
+            const sysSource = dspCtx.createMediaStreamSource(new MediaStream(sysAudioTracks));
+            sysSource.connect(gainNode);
+          }
+        }
+
+        gainNode.connect(compressor);
+        compressor.connect(destination);
+        finalRecordingStream = destination.stream;
+      }
+
       const preferredMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm')
           ? 'audio/webm'
           : 'audio/mp4';
 
-      const recorder = new MediaRecorder(finalRecordingStream, { mimeType: preferredMime });
+      // Use 32 kbps Opus voice optimization (~14 MB/hour) for ultra-fast upload & streaming
+      const recorder = new MediaRecorder(finalRecordingStream, {
+        mimeType: preferredMime,
+        audioBitsPerSecond: 32000,
+      });
 
       recorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
@@ -775,6 +839,58 @@ export function LiveMeetingRecorder({
             </div>
           </div>
 
+          {/* DSP Studio Controls: Noise Filter + Low Voice Booster */}
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  <span>🛡️ Estúdio DSP: Gravação Sem Ruído + Compressão Rápida (32 kbps)</span>
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Corta ruído de fundo (ar condicionado/ventoinha &lt;85Hz e chiado &gt;7.5kHz) e reduz tamanho em 8x.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={dspNoiseFilter}
+                onChange={(e) => setDspNoiseFilter(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  🔊 Amplificador de Voz Baixa / Baixíssima (Pré-Amp + Compressor AGC):
+                </span>
+                <Badge variant="outline" className="font-mono text-[10px]">
+                  {Math.round(voiceGainMultiplier * 100)}% ({voiceGainMultiplier.toFixed(1)}x)
+                </Badge>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { val: 1.0, label: '1x Normal' },
+                  { val: 2.0, label: '2x Voz Baixa' },
+                  { val: 3.0, label: '3x Muito Baixa' },
+                  { val: 4.0, label: '4x Fundo Sala' },
+                ].map((opt) => (
+                  <button
+                    key={opt.val}
+                    type="button"
+                    onClick={() => setVoiceGainMultiplier(opt.val)}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all ${
+                      voiceGainMultiplier === opt.val
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-400'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
               <div>
@@ -856,6 +972,36 @@ export function LiveMeetingRecorder({
                   style={{ height: `${Math.max(12, Math.round((lvl / 100) * 40))}px` }}
                 />
               ))}
+            </div>
+
+            {/* Live In-Recording Voice Booster Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-800/70 border border-slate-700/80 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-300 font-semibold">
+                  🔊 Amplificar Voz Baixa ao Vivo:
+                </span>
+                {dspNoiseFilter && (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/60">
+                    🛡️ Filtro Sem Ruído Ativo
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {[1.0, 2.0, 3.0, 4.0].map((gainVal) => (
+                  <button
+                    key={gainVal}
+                    type="button"
+                    onClick={() => setVoiceGainMultiplier(gainVal)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-all ${
+                      voiceGainMultiplier === gainVal
+                        ? 'bg-indigo-500 text-white shadow'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {gainVal}x
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Active Speaker Selector */}

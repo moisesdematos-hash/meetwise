@@ -24,6 +24,84 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
     const [playbackRate, setPlaybackRate] = useState(1);
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
+    const [voiceBoost, setVoiceBoost] = useState<number>(1.0);
+    const [noiseFilterEnabled, setNoiseFilterEnabled] = useState<boolean>(false);
+
+    const audioCtxRef = useRef<AudioContext | null>(null);
+    const gainNodeRef = useRef<GainNode | null>(null);
+    const highpassNodeRef = useRef<BiquadFilterNode | null>(null);
+    const presenceNodeRef = useRef<BiquadFilterNode | null>(null);
+    const sourceInitializedRef = useRef<boolean>(false);
+
+    const ensureAudioDspInitialized = () => {
+      if (sourceInitializedRef.current || !audioRef.current) return;
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return;
+
+        const ctx = new AudioCtx();
+        const source = ctx.createMediaElementSource(audioRef.current);
+
+        const highpass = ctx.createBiquadFilter();
+        highpass.type = 'highpass';
+        highpass.frequency.value = noiseFilterEnabled ? 85 : 10;
+
+        const presence = ctx.createBiquadFilter();
+        presence.type = 'peaking';
+        presence.frequency.value = 2500;
+        presence.Q.value = 1.0;
+        presence.gain.value = noiseFilterEnabled ? 3.5 : 0;
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = voiceBoost;
+
+        const compressor = ctx.createDynamicsCompressor();
+        compressor.threshold.value = -28;
+        compressor.knee.value = 20;
+        compressor.ratio.value = 5;
+        compressor.attack.value = 0.003;
+        compressor.release.value = 0.25;
+
+        source.connect(highpass);
+        highpass.connect(presence);
+        presence.connect(gainNode);
+        gainNode.connect(compressor);
+        compressor.connect(ctx.destination);
+
+        audioCtxRef.current = ctx;
+        gainNodeRef.current = gainNode;
+        highpassNodeRef.current = highpass;
+        presenceNodeRef.current = presence;
+        sourceInitializedRef.current = true;
+      } catch {
+        // Ignore if MediaElementSource already connected
+      }
+    };
+
+    useEffect(() => {
+      if (gainNodeRef.current && audioCtxRef.current) {
+        gainNodeRef.current.gain.setTargetAtTime(
+          voiceBoost,
+          audioCtxRef.current.currentTime,
+          0.05
+        );
+      }
+    }, [voiceBoost]);
+
+    useEffect(() => {
+      if (highpassNodeRef.current && presenceNodeRef.current && audioCtxRef.current) {
+        highpassNodeRef.current.frequency.setTargetAtTime(
+          noiseFilterEnabled ? 85 : 10,
+          audioCtxRef.current.currentTime,
+          0.05
+        );
+        presenceNodeRef.current.gain.setTargetAtTime(
+          noiseFilterEnabled ? 3.5 : 0,
+          audioCtxRef.current.currentTime,
+          0.05
+        );
+      }
+    }, [noiseFilterEnabled]);
 
     useImperativeHandle(ref, () => ({
       seekTo: (seconds: number) => {
@@ -66,6 +144,10 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
 
     const togglePlayPause = () => {
       if (!audioRef.current) return;
+      ensureAudioDspInitialized();
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {});
+      }
       if (isPlaying) {
         audioRef.current.pause();
         setIsPlaying(false);
@@ -229,6 +311,49 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
               )}
             </button>
           </div>
+        </div>
+
+        {/* Voice Booster (1x to 4x) & Noise Filter Bar for Quiet Recordings */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+          <div className="flex items-center gap-1.5">
+            <span className="font-semibold text-slate-600 dark:text-slate-400">
+              🔊 Amplificar Voz Baixa:
+            </span>
+            {[1, 2, 3, 4].map((boost) => (
+              <button
+                key={boost}
+                type="button"
+                onClick={() => {
+                  ensureAudioDspInitialized();
+                  setVoiceBoost(boost);
+                }}
+                className={`px-2 py-0.5 rounded font-mono font-bold transition-colors ${
+                  voiceBoost === boost
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                }`}
+                title={`Amplificar volume de voz em ${boost * 100}%`}
+              >
+                {boost}x
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              ensureAudioDspInitialized();
+              setNoiseFilterEnabled((prev) => !prev);
+            }}
+            className={`px-2.5 py-0.5 rounded font-semibold transition-colors flex items-center gap-1 ${
+              noiseFilterEnabled
+                ? 'bg-emerald-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+            }`}
+            title="Ativar filtro corta-ruído grave (<85Hz) e nitidez vocal (+3.5dB em 2.5kHz)"
+          >
+            <span>🛡️ {noiseFilterEnabled ? 'Sem Ruído: Ativo' : 'Limpar Ruído'}</span>
+          </button>
         </div>
       </div>
     );
