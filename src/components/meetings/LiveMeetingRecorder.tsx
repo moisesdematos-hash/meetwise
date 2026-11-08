@@ -47,6 +47,8 @@ export function LiveMeetingRecorder({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [language, setLanguage] = useState('pt-PT');
   const [templateType, setTemplateType] = useState<TemplateType>('formal');
+  const [recordingSource, setRecordingSource] = useState<'mic_only' | 'online_meeting'>('mic_only');
+  const [systemAudioActive, setSystemAudioActive] = useState(false);
   const [autoGenerateMinutes, setAutoGenerateMinutes] = useState(true);
   const [saveLocalCopy, setSaveLocalCopy] = useState(true);
   const [recordedBytes, setRecordedBytes] = useState(0);
@@ -74,6 +76,8 @@ export function LiveMeetingRecorder({
   // Refs for MediaRecorder, AudioContext, SpeechRecognition, Timers
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const displayStreamRef = useRef<MediaStream | null>(null);
+  const mixerAudioCtxRef = useRef<AudioContext | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const elapsedRef = useRef<number>(0);
@@ -122,10 +126,21 @@ export function LiveMeetingRecorder({
       audioContextRef.current = null;
     }
 
+    if (mixerAudioCtxRef.current) {
+      mixerAudioCtxRef.current.close().catch(() => {});
+      mixerAudioCtxRef.current = null;
+    }
+
+    if (displayStreamRef.current) {
+      displayStreamRef.current.getTracks().forEach((track) => track.stop());
+      displayStreamRef.current = null;
+    }
+
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
     }
+    setSystemAudioActive(false);
   }, []);
 
   useEffect(() => {
@@ -260,7 +275,8 @@ export function LiveMeetingRecorder({
     segmentStartMsRef.current = 0;
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // 1. Capture local microphone
+      const micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -268,7 +284,52 @@ export function LiveMeetingRecorder({
         },
       });
 
-      mediaStreamRef.current = stream;
+      mediaStreamRef.current = micStream;
+      let finalRecordingStream: MediaStream = micStream;
+
+      // 2. If Online Meeting mode (Zoom / WhatsApp / Teams / Meet), capture system/tab audio and mix with mic
+      if (recordingSource === 'online_meeting' && navigator.mediaDevices.getDisplayMedia) {
+        try {
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+            } as any,
+          });
+
+          displayStreamRef.current = displayStream;
+          const sysAudioTracks = displayStream.getAudioTracks();
+
+          // Stop video track immediately since we only need the audio mix
+          displayStream.getVideoTracks().forEach((vTrack) => vTrack.stop());
+
+          if (sysAudioTracks.length > 0) {
+            const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+            const mixerCtx = new AudioCtx();
+            mixerAudioCtxRef.current = mixerCtx;
+
+            const destination = mixerCtx.createMediaStreamDestination();
+
+            const micSource = mixerCtx.createMediaStreamSource(micStream);
+            micSource.connect(destination);
+
+            const sysSource = mixerCtx.createMediaStreamSource(new MediaStream(sysAudioTracks));
+            sysSource.connect(destination);
+
+            finalRecordingStream = destination.stream;
+            setSystemAudioActive(true);
+          } else {
+            setSystemAudioActive(false);
+          }
+        } catch {
+          // If user cancels screen share dialog, continue gracefully with microphone
+          setSystemAudioActive(false);
+        }
+      } else {
+        setSystemAudioActive(false);
+      }
 
       const preferredMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
@@ -276,7 +337,7 @@ export function LiveMeetingRecorder({
           ? 'audio/webm'
           : 'audio/mp4';
 
-      const recorder = new MediaRecorder(stream, { mimeType: preferredMime });
+      const recorder = new MediaRecorder(finalRecordingStream, { mimeType: preferredMime });
 
       recorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
@@ -296,8 +357,8 @@ export function LiveMeetingRecorder({
         setElapsedSeconds((prev) => prev + 1);
       }, 1000);
 
-      // Start waveform & live speech recognition
-      startWaveformVisualizer(stream);
+      // Start waveform & live speech recognition on mixed stream
+      startWaveformVisualizer(finalRecordingStream);
       startSpeechRecognition(language);
     } catch (err: any) {
       setError(
@@ -632,6 +693,54 @@ export function LiveMeetingRecorder({
             </div>
           </div>
 
+          {/* Recording Source Selector: In-Person vs Zoom / WhatsApp / Teams / Meet */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Onde está a decorrer a reunião?
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setRecordingSource('mic_only')}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  recordingSource === 'mic_only'
+                    ? 'border-indigo-600 bg-indigo-50/60 dark:bg-indigo-950/40 ring-1 ring-indigo-600'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
+                }`}
+              >
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <span>🎙️ Sala Presencial (Microfone)</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Capta as vozes presentes na sala através do seu microfone.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRecordingSource('online_meeting')}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  recordingSource === 'online_meeting'
+                    ? 'border-indigo-600 bg-indigo-50/60 dark:bg-indigo-950/40 ring-1 ring-indigo-600'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
+                }`}
+              >
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <span>💻 Zoom / WhatsApp / Teams / Meet</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Mistura o som da chamada (outros participantes) + o seu microfone.
+                </p>
+              </button>
+            </div>
+
+            {recordingSource === 'online_meeting' && (
+              <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-[11px] text-amber-800 dark:text-amber-300">
+                <strong>Dica:</strong> Ao clicar em <em>Iniciar Gravação</em>, o navegador pedirá para escolher o Ecrã ou Separador da chamada (Zoom/WhatsApp/Meet). Lembre-se de marcar a opção <strong>&ldquo;Partilhar também o áudio do sistema / separador&rdquo;</strong> para gravar a voz de todos os participantes.
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -721,6 +830,14 @@ export function LiveMeetingRecorder({
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
                   {status === 'recording' ? 'Gravação em Curso' : 'Gravação em Pausa'}
                 </span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] border-slate-700 text-emerald-300 bg-slate-800/80"
+                >
+                  {systemAudioActive
+                    ? '💻 + 🎙️ Áudio Zoom/WhatsApp + Microfone'
+                    : '🎙️ Microfone Ativo'}
+                </Badge>
               </div>
 
               <div className="font-mono text-2xl font-bold tracking-widest text-white bg-slate-800 px-3.5 py-1 rounded-lg border border-slate-700">
