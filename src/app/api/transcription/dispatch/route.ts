@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { defaultProcessingQueue } from '@/modules/jobs';
+import { getEffectiveServerClient } from '@/lib/supabase/admin';
+import { ProcessingQueueService } from '@/modules/jobs';
 import { AppError } from '@/lib/errors/app-error';
 
 export async function POST(req: NextRequest) {
@@ -16,7 +17,17 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { meetingId, organizationId, mediaAssetId, language, diarize, estimatedMinutes, autoProcess } = body;
+    const {
+      meetingId,
+      organizationId,
+      mediaAssetId,
+      language,
+      diarize,
+      estimatedMinutes,
+      durationSeconds,
+      liveSegments,
+      autoProcess,
+    } = body;
 
     if (!meetingId || !organizationId || !mediaAssetId) {
       return NextResponse.json(
@@ -37,20 +48,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Acesso negado à organização' }, { status: 403 });
     }
 
+    const effectiveClient = getEffectiveServerClient(supabase);
+    const processingQueue = new ProcessingQueueService(undefined, undefined, effectiveClient);
+
     // Enqueue transcription job (handles atomic quota reservation)
-    const { jobId, idempotencyKey } = await defaultProcessingQueue.enqueueTranscriptionJob({
+    const { jobId, idempotencyKey } = await processingQueue.enqueueTranscriptionJob({
       meetingId,
       organizationId,
       mediaAssetId,
       language: language || 'pt',
       diarize: diarize !== false,
       estimatedMinutes: estimatedMinutes || 15,
+      durationSeconds,
+      liveSegments,
     });
 
     // In local development / mock environment, process immediately
     if (autoProcess !== false) {
       // Run worker synchronously or background task
-      const result = await defaultProcessingQueue.processJob(jobId);
+      const result = await processingQueue.processJob(jobId);
       return NextResponse.json({
         success: true,
         jobId,

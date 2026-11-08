@@ -155,6 +155,17 @@ export class MockLLMService implements ILLMAdapter {
     ];
 
     // 6. Minutes Structure Generation
+    const verbatimInterventions =
+      segments.length > 0
+        ? '\n\n#### Síntese das Intervenções Registadas:\n' +
+          segments
+            .map(
+              (s) =>
+                `- **${s.speaker_label ?? s.speakerLabel ?? 'Participante'}:** "${s.text}"`
+            )
+            .join('\n')
+        : '';
+
     const minutesMarkdown = `# ATA DE REUNIÃO — ${params.meetingTitle.toUpperCase()}
 
 **Organização:** ${params.organizationName || 'Organização Principal'}  
@@ -174,13 +185,14 @@ export class MockLLMService implements ILLMAdapter {
 
 ### 2. ASSUNTOS DISCUTIDOS E DELIBERAÇÕES
 O Presidente abriu a sessão dando as boas-vindas aos presentes.
-Foi apresentada a informação sobre o encerramento das contas, tendo sido aprovada a expansão orçamental.
+Foi apresentada a informação sobre o encerramento das contas, tendo sido aprovada a expansão orçamental.${verbatimInterventions}
 
 ### 3. DECISÕES TOMADAS
 - **Decisão 1:** Aprovação dos relatórios e do orçamento com consenso unânime.
+- **Evidência Verbatim:** *"${secondSeg.text}"*
 
 ### 4. TAREFAS E RESPONSABILIDADES
-- **Tarefa 1:** Enviar plano detalhado de contratações até ao final da semana.
+- **Tarefa 1:** Enviar plano detalhado de contratações até ao final da semana. (${speaker1})
 
 ### 5. ENCERRAMENTO
 Nada mais havendo a tratar, a reunião foi encerrada. Para constar se lavrou a presente ata que vai ser assinada.

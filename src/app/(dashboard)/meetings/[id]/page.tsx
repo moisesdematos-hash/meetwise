@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { AudioPlayer, type AudioPlayerRef } from '@/components/transcription/AudioPlayer';
 import { TranscriptEditor, type TranscriptSegmentItem } from '@/components/transcription/TranscriptEditor';
 import { MinutesEditor, type MinutesData, type SummaryData, type DecisionItem, type TaskItem, type AuditLogItem } from '@/components/minutes/MinutesEditor';
+import { LiveMeetingRecorder } from '@/components/meetings/LiveMeetingRecorder';
 import { createClient } from '@/lib/supabase/client';
 import type { MinutesReviewStatus, TemplateType } from '@/lib/supabase/database.types';
 
@@ -46,6 +47,7 @@ export default function MeetingDetailPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('formal');
   const [selectedProvider, setSelectedProvider] = useState<'mock' | 'gemini' | 'openai' | 'claude'>('mock');
+  const [showLiveRecorder, setShowLiveRecorder] = useState(false);
 
   const fetchMinutesData = useCallback(async (organizationId: string) => {
     try {
@@ -299,7 +301,16 @@ export default function MeetingDetailPage() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="brand"
+            size="sm"
+            onClick={() => setShowLiveRecorder((prev) => !prev)}
+            className="flex items-center gap-2"
+          >
+            <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+            <span>{showLiveRecorder ? 'Fechar Gravador ao Vivo' : 'Gravar em Tempo Real'}</span>
+          </Button>
           {meeting.status === 'completed' && <Badge variant="success">Transcrição Pronta</Badge>}
           {meeting.status === 'processing' && (
             <Badge variant="warning" className="animate-pulse">
@@ -311,6 +322,48 @@ export default function MeetingDetailPage() {
           {minutes && <Badge variant="purple">Ata Gerada ({minutes.review_status})</Badge>}
         </div>
       </div>
+
+      {/* Live Recorder Panel inside Meeting Room */}
+      {(showLiveRecorder || (segments.length === 0 && !isStillProcessing)) && (
+        <Card className="p-6 bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-900/60 shadow-sm">
+          <LiveMeetingRecorder
+            meetingId={meetingId}
+            organizationId={meeting.organization_id}
+            meetingTitle={meeting.title}
+            onComplete={async (res) => {
+              setShowLiveRecorder(false);
+              // Reload segments and minutes, then open the generated Minutes tab automatically
+              const supabase = createClient();
+              const { data: segData } = await supabase
+                .from('transcript_segments')
+                .select('*')
+                .eq('meeting_id', meetingId)
+                .order('start_time', { ascending: true });
+
+              if (segData) {
+                setSegments(
+                  segData.map((s: any) => ({
+                    id: s.id,
+                    speaker_label: s.speaker_label,
+                    start_time: Number(s.start_time),
+                    end_time: Number(s.end_time),
+                    text: s.text,
+                    confidence: Number(s.confidence),
+                    is_edited: Boolean(s.is_edited),
+                    original_text: s.original_text,
+                  }))
+                );
+              }
+              setAudioUrl(`/api/meetings/${meetingId}/recordings/stream`);
+              await fetchMinutesData(meeting.organization_id);
+              if (res.minutesGenerated) {
+                setMainTab('intelligence');
+              }
+            }}
+            onCancel={segments.length > 0 ? () => setShowLiveRecorder(false) : undefined}
+          />
+        </Card>
+      )}
 
       {/* Main Tabs Switcher */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">

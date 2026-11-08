@@ -13,7 +13,11 @@ import {
 interface AudioUploaderProps {
   meetingId: string;
   organizationId: string;
-  onUploadSuccess?: (result: { mediaAssetId: string; jobId: string }) => void;
+  onUploadSuccess?: (result: {
+    mediaAssetId: string;
+    jobId: string;
+    minutesGenerated?: boolean;
+  }) => void;
   onCancel?: () => void;
 }
 
@@ -26,6 +30,7 @@ export function AudioUploader({
   const [file, setFile] = useState<File | null>(null);
   const [language, setLanguage] = useState('pt');
   const [diarize, setDiarize] = useState(true);
+  const [autoGenerateMinutes, setAutoGenerateMinutes] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -132,10 +137,32 @@ export function AudioUploader({
       }
 
       const dispatchData = await dispatchResponse.json();
+      setProgress(85);
+
+      let minutesGenerated = false;
+      if (autoGenerateMinutes) {
+        const analyzeRes = await fetch(`/api/meetings/${meetingId}/analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            organizationId,
+            templateType: 'formal',
+            language: language === 'auto' ? 'pt' : language,
+          }),
+        });
+        if (analyzeRes.ok) {
+          minutesGenerated = true;
+        }
+      }
+
       setProgress(100);
 
       if (onUploadSuccess) {
-        onUploadSuccess({ mediaAssetId, jobId: dispatchData.jobId });
+        onUploadSuccess({
+          mediaAssetId,
+          jobId: dispatchData.jobId,
+          minutesGenerated,
+        });
       }
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro durante o carregamento.');
@@ -233,8 +260,8 @@ export function AudioUploader({
           </select>
         </div>
 
-        <div className="flex flex-col justify-end">
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 py-2 cursor-pointer">
+        <div className="flex flex-col justify-end space-y-2">
+          <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
             <input
               type="checkbox"
               checked={diarize}
@@ -243,6 +270,16 @@ export function AudioUploader({
               className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-700"
             />
             <span>Diarização de Oradores (distinguir quem falou)</span>
+          </label>
+          <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoGenerateMinutes}
+              onChange={(e) => setAutoGenerateMinutes(e.target.checked)}
+              disabled={isUploading}
+              className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-700"
+            />
+            <span>Gerar Ata Oficial automaticamente no final</span>
           </label>
         </div>
       </div>

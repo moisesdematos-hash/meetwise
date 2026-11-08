@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getEffectiveServerClient } from '@/lib/supabase/admin';
 import { validateStoragePathSecurity } from '@/modules/media';
 import { AppError } from '@/lib/errors/app-error';
 
@@ -35,7 +35,7 @@ export async function GET(
       );
     }
 
-    const admin = createAdminClient();
+    const admin = getEffectiveServerClient(supabase);
 
     // 3. Fetch meeting details
     const { data: meeting, error: meetError } = await admin

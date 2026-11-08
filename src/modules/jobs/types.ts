@@ -1,5 +1,13 @@
 import { type JobStatus } from '@/lib/supabase/database.types';
 
+export interface LiveCapturedSegmentInput {
+  speaker_label: string;
+  start_time_ms: number;
+  end_time_ms: number;
+  text: string;
+  confidence?: number;
+}
+
 export interface TranscriptionJobPayload {
   meetingId: string;
   organizationId: string;
@@ -7,6 +15,8 @@ export interface TranscriptionJobPayload {
   language?: string;
   diarize?: boolean;
   estimatedMinutes?: number;
+  durationSeconds?: number;
+  liveSegments?: LiveCapturedSegmentInput[];
 }
 
 export interface JobExecutionResult {

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { AudioUploader } from '@/components/meetings/AudioUploader';
+import { LiveMeetingRecorder } from '@/components/meetings/LiveMeetingRecorder';
 import { createClient } from '@/lib/supabase/client';
 
 interface MeetingItem {
@@ -35,6 +36,7 @@ export default function MeetingsPage() {
   // Form state for new meeting
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
+  const [captureMode, setCaptureMode] = useState<'live' | 'upload'>('live');
   const [createdMeetingId, setCreatedMeetingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -115,10 +117,18 @@ export default function MeetingsPage() {
     }
   };
 
-  const handleUploadSuccess = (result: { mediaAssetId: string; jobId: string }) => {
+  const handleUploadSuccess = (result: {
+    mediaAssetId: string;
+    jobId: string;
+    minutesGenerated?: boolean;
+  }) => {
     setUploadModalOpen(false);
     if (createdMeetingId) {
-      router.push(`/meetings/${createdMeetingId}`);
+      router.push(
+        result.minutesGenerated
+          ? `/meetings/${createdMeetingId}?tab=minutes`
+          : `/meetings/${createdMeetingId}`
+      );
     }
   };
 
@@ -170,21 +180,39 @@ export default function MeetingsPage() {
           </p>
         </div>
 
-        <Button
-          variant="brand"
-          onClick={() => {
-            setCreatedMeetingId(null);
-            setNewTitle('');
-            setNewDescription('');
-            setUploadModalOpen(true);
-          }}
-          className="flex items-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>Nova Reunião</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="brand"
+            onClick={() => {
+              setCreatedMeetingId(null);
+              setNewTitle('');
+              setNewDescription('');
+              setCaptureMode('live');
+              setUploadModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse" />
+            <span>Gravar Reunião ao Vivo</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => {
+              setCreatedMeetingId(null);
+              setNewTitle('');
+              setNewDescription('');
+              setCaptureMode('upload');
+              setUploadModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Carregar Áudio Gravado</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -291,13 +319,46 @@ export default function MeetingsPage() {
         </div>
       )}
 
-      {/* New Meeting Modal with Audio Upload */}
+      {/* New Meeting Modal with Live Recording or Audio Upload */}
       <Modal
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
-        title={createdMeetingId ? 'Carregar Gravação de Áudio' : 'Nova Reunião'}
+        title={
+          createdMeetingId
+            ? captureMode === 'live'
+              ? 'Gravação Direta da Reunião em Tempo Real'
+              : 'Carregar Gravação de Áudio'
+            : 'Nova Reunião'
+        }
       >
         <div className="space-y-4 text-xs">
+          {/* Mode Switcher */}
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setCaptureMode('live')}
+              className={`py-2 px-3 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-2 ${
+                captureMode === 'live'
+                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span>Gravar em Tempo Real</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCaptureMode('upload')}
+              className={`py-2 px-3 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-2 ${
+                captureMode === 'upload'
+                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              <span>📁 Carregar Ficheiro</span>
+            </button>
+          </div>
+
           {!createdMeetingId ? (
             <div className="space-y-4">
               <div>
@@ -306,7 +367,7 @@ export default function MeetingsPage() {
                 </label>
                 <Input
                   id="meeting-title"
-                  placeholder="Ex: Alinhamento de Produto Q4"
+                  placeholder="Ex: Reunião Ordinária do Conselho de Administração"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                 />
@@ -314,7 +375,7 @@ export default function MeetingsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Descrição (Opcional)
+                  Descrição / Ordem de Trabalhos (Opcional)
                 </label>
                 <textarea
                   placeholder="Contexto, agenda ou notas breves..."
@@ -330,15 +391,27 @@ export default function MeetingsPage() {
                   Cancelar
                 </Button>
                 <Button
-                  variant="primary"
+                  variant="brand"
                   size="sm"
                   onClick={handleCreateMeetingRecord}
                   disabled={!newTitle.trim() || isCreating || !currentOrgId}
                 >
-                  {isCreating ? 'A criar...' : 'Continuar para Áudio'}
+                  {isCreating
+                    ? 'A preparar sala...'
+                    : captureMode === 'live'
+                      ? 'Abrir Gravador em Tempo Real →'
+                      : 'Continuar para Carregar Ficheiro →'}
                 </Button>
               </div>
             </div>
+          ) : captureMode === 'live' ? (
+            <LiveMeetingRecorder
+              meetingId={createdMeetingId}
+              organizationId={currentOrgId!}
+              meetingTitle={newTitle}
+              onComplete={handleUploadSuccess}
+              onCancel={() => setUploadModalOpen(false)}
+            />
           ) : (
             <AudioUploader
               meetingId={createdMeetingId}

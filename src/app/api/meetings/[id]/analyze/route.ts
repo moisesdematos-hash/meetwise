@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getEffectiveServerClient } from '@/lib/supabase/admin';
 import { MeetingAnalysisService } from '@/modules/ai/analysis-service';
 import { AppError } from '@/lib/errors/app-error';
 
@@ -52,7 +52,7 @@ export async function POST(
       );
     }
 
-    const admin = createAdminClient();
+    const admin = getEffectiveServerClient(supabase);
     const service = new MeetingAnalysisService(admin);
 
     const result = await service.analyzeMeeting({

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getEffectiveServerClient } from '@/lib/supabase/admin';
 import { HumanReviewService } from '@/modules/minutes/review-service';
 import { AppError } from '@/lib/errors/app-error';
 
@@ -45,7 +45,7 @@ export async function GET(
       );
     }
 
-    const admin = createAdminClient();
+    const admin = getEffectiveServerClient(supabase);
 
     // Fetch Minutes, Summary, Decisions, Tasks, and Audit Logs
     const [minutesRes, summaryRes, decisionsRes, tasksRes] = await Promise.all([
@@ -165,7 +165,7 @@ export async function PATCH(
       );
     }
 
-    const admin = createAdminClient();
+    const admin = getEffectiveServerClient(supabase);
     const reviewService = new HumanReviewService(admin);
 
     const updated = await reviewService.updateMinutesReview({

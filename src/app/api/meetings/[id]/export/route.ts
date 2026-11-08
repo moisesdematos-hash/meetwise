@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getEffectiveServerClient } from '@/lib/supabase/admin';
 import { CanonicalDocumentBuilder } from '@/modules/documents/canonical';
 import { DocumentGenerationService } from '@/modules/documents/generation-service';
 import { DocumentNumberingService } from '@/modules/documents/numbering-service';
@@ -44,7 +44,7 @@ export async function POST(
     }
 
     // 2. Multi-tenant authorization check
-    const admin = createAdminClient();
+    const admin = getEffectiveServerClient(supabase);
     const { data: member } = await admin
       .from('organization_members')
       .select('role, status')
