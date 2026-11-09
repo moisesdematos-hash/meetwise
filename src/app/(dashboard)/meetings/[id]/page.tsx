@@ -50,6 +50,12 @@ export default function MeetingDetailPage() {
   const [selectedProvider, setSelectedProvider] = useState<'mock' | 'gemini' | 'openai' | 'claude'>('mock');
   const [showLiveRecorder, setShowLiveRecorder] = useState(false);
 
+  // Collapsible columns & sections state
+  const [leftColumnCollapsed, setLeftColumnCollapsed] = useState(false);
+  const [rightColumnCollapsed, setRightColumnCollapsed] = useState(false);
+  const [detailsCardCollapsed, setDetailsCardCollapsed] = useState(true);
+  const [participantsCardCollapsed, setParticipantsCardCollapsed] = useState(true);
+
   const fetchMinutesData = useCallback(async (organizationId: string) => {
     try {
       setMinutesLoading(true);
@@ -448,124 +454,212 @@ export default function MeetingDetailPage() {
           </div>
         </div>
       ) : mainTab === 'transcription' ? (
-        /* Dual Pane Layout */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[600px]">
-          {/* Left Pane: Media Player & Meeting Metadata */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="sticky top-6 space-y-4">
-              <AudioPlayer
-                ref={playerRef}
-                src={audioUrl || '/sample-audio.mp3'}
-                title={meeting.title}
-                audioFilename={
-                  mediaAsset?.original_filename || `${meeting.title || 'reuniao'}.webm`
-                }
-                segments={segments}
-                onTimeUpdate={(t) => setCurrentTime(t)}
-                onRenameAudio={handleRenameAudio}
-                onDeleteAudio={handleDeleteAudio}
-                onLiveCaptionCaptured={(seg) => {
-                  setSegments((prev) => [
-                    ...prev,
-                    {
-                      id: `live-listen-${Date.now()}`,
-                      speaker_label: seg.speaker_label,
-                      start_time: seg.start_time,
-                      end_time: seg.end_time,
-                      text: seg.text,
-                      confidence: 0.92,
-                      is_edited: false,
-                    },
-                  ]);
+        /* Collapsible Dual Pane Layout */
+        <div className="space-y-3">
+          {/* Column Collapse Controls Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-100/80 dark:bg-slate-900/70 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+            <span className="font-semibold text-slate-600 dark:text-slate-400">
+              Visualização de Colunas:
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setLeftColumnCollapsed((prev) => !prev);
+                  if (rightColumnCollapsed && !leftColumnCollapsed) setRightColumnCollapsed(false);
                 }}
-              />
-
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Detalhes da Reunião
-                </h4>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-slate-400 block">Duração:</span>
-                    <span className="font-semibold text-slate-900 dark:text-white font-mono">
-                      {formatDuration(meeting.duration_seconds)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Idioma:</span>
-                    <span className="font-semibold text-slate-900 dark:text-white uppercase font-mono">
-                      {meeting.language || 'PT'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Total de Segmentos:</span>
-                    <span className="font-semibold text-slate-900 dark:text-white font-mono">
-                      {segments.length}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Intervenientes:</span>
-                    <span className="font-semibold text-slate-900 dark:text-white font-mono">
-                      {participants.length || Array.from(new Set(segments.map((s) => s.speaker_label))).length}
-                    </span>
-                  </div>
-                </div>
-
-                {meeting.description && (
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-                    <span className="text-slate-400 block mb-1">Notas:</span>
-                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                      {meeting.description}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Identified Participants List */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                  Intervenientes Identificados
-                </h4>
-                <div className="space-y-1.5">
-                  {(participants.length > 0
-                    ? participants
-                    : Array.from(new Set(segments.map((s) => s.speaker_label))).map((spk) => ({
-                        id: spk,
-                        name: spk,
-                        speaker_label: spk,
-                      }))
-                  ).map((p: any) => (
-                    <div
-                      key={p.id || p.speaker_label}
-                      className="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-[10px]">
-                          {p.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-medium text-slate-900 dark:text-white">{p.name}</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {p.speaker_label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                className="px-2.5 py-1 rounded-lg font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors"
+              >
+                {leftColumnCollapsed ? '➕ Mostrar Coluna de Áudio' : '➖ Colapsar Coluna de Áudio'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRightColumnCollapsed((prev) => !prev);
+                  if (leftColumnCollapsed && !rightColumnCollapsed) setLeftColumnCollapsed(false);
+                }}
+                className="px-2.5 py-1 rounded-lg font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors"
+              >
+                {rightColumnCollapsed ? '➕ Mostrar Coluna de Transcrição' : '➖ Colapsar Coluna de Transcrição'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const allCollapsed = detailsCardCollapsed && participantsCardCollapsed;
+                  setDetailsCardCollapsed(!allCollapsed);
+                  setParticipantsCardCollapsed(!allCollapsed);
+                }}
+                className="px-2.5 py-1 rounded-lg font-semibold bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition-colors"
+              >
+                {detailsCardCollapsed && participantsCardCollapsed
+                  ? '📂 Expandir Painéis Secundários'
+                  : '📁 Colapsar Painéis Secundários'}
+              </button>
             </div>
           </div>
 
-          {/* Right Pane: Interactive Transcript Editor */}
-          <div className="lg:col-span-7 h-[700px]">
-            <TranscriptEditor
-              meetingId={meetingId}
-              segments={segments}
-              currentTime={currentTime}
-              onSeek={handleSeek}
-              reviewStatus={meeting.transcription_review_status || 'draft'}
-              isSimulated={isSimulated}
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[550px]">
+            {/* Left Pane: Media Player & Meeting Metadata */}
+            {!leftColumnCollapsed && (
+              <div
+                className={`${
+                  rightColumnCollapsed ? 'lg:col-span-12' : 'lg:col-span-5'
+                } space-y-4 transition-all`}
+              >
+                <div className="sticky top-6 space-y-3">
+                  <AudioPlayer
+                    ref={playerRef}
+                    src={audioUrl || '/sample-audio.mp3'}
+                    title={meeting.title}
+                    audioFilename={
+                      mediaAsset?.original_filename || `${meeting.title || 'reuniao'}.webm`
+                    }
+                    segments={segments}
+                    onTimeUpdate={(t) => setCurrentTime(t)}
+                    onRenameAudio={handleRenameAudio}
+                    onDeleteAudio={handleDeleteAudio}
+                    onLiveCaptionCaptured={(seg) => {
+                      setSegments((prev) => [
+                        ...prev,
+                        {
+                          id: `live-listen-${Date.now()}`,
+                          speaker_label: seg.speaker_label,
+                          start_time: seg.start_time,
+                          end_time: seg.end_time,
+                          text: seg.text,
+                          confidence: 0.92,
+                          is_edited: false,
+                        },
+                      ]);
+                    }}
+                  />
+
+                  {/* Collapsible Meeting Details Card */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setDetailsCardCollapsed((prev) => !prev)}
+                      className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                    >
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Detalhes da Reunião ({formatDuration(meeting.duration_seconds)} • {segments.length} trechos)
+                      </h4>
+                      <span className="text-xs text-slate-400 font-bold">
+                        {detailsCardCollapsed ? '▼ Expandir' : '▲ Colapsar'}
+                      </span>
+                    </button>
+
+                    {!detailsCardCollapsed && (
+                      <div className="px-4 pb-4 pt-1 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <span className="text-slate-400 block">Duração:</span>
+                            <span className="font-semibold text-slate-900 dark:text-white font-mono">
+                              {formatDuration(meeting.duration_seconds)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block">Idioma:</span>
+                            <span className="font-semibold text-slate-900 dark:text-white uppercase font-mono">
+                              {meeting.language || 'PT'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block">Total de Segmentos:</span>
+                            <span className="font-semibold text-slate-900 dark:text-white font-mono">
+                              {segments.length}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block">Intervenientes:</span>
+                            <span className="font-semibold text-slate-900 dark:text-white font-mono">
+                              {participants.length ||
+                                Array.from(new Set(segments.map((s) => s.speaker_label))).length}
+                            </span>
+                          </div>
+                        </div>
+
+                        {meeting.description && (
+                          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                            <span className="text-slate-400 block mb-1">Notas:</span>
+                            <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                              {meeting.description}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Collapsible Identified Participants List */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setParticipantsCardCollapsed((prev) => !prev)}
+                      className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                    >
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Intervenientes Identificados (
+                        {participants.length ||
+                          Array.from(new Set(segments.map((s) => s.speaker_label))).length}
+                        )
+                      </h4>
+                      <span className="text-xs text-slate-400 font-bold">
+                        {participantsCardCollapsed ? '▼ Expandir' : '▲ Colapsar'}
+                      </span>
+                    </button>
+
+                    {!participantsCardCollapsed && (
+                      <div className="px-4 pb-4 pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+                        {(participants.length > 0
+                          ? participants
+                          : Array.from(new Set(segments.map((s) => s.speaker_label))).map((spk) => ({
+                              id: spk,
+                              name: spk,
+                              speaker_label: spk,
+                            }))
+                        ).map((p: any) => (
+                          <div
+                            key={p.id || p.speaker_label}
+                            className="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-[10px]">
+                                {p.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="font-medium text-slate-900 dark:text-white">
+                                {p.name}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {p.speaker_label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Right Pane: Interactive Transcript Editor */}
+            {!rightColumnCollapsed && (
+              <div
+                className={`${
+                  leftColumnCollapsed ? 'lg:col-span-12' : 'lg:col-span-7'
+                } h-[700px] transition-all`}
+              >
+                <TranscriptEditor
+                  meetingId={meetingId}
+                  segments={segments}
+                  currentTime={currentTime}
+                  onSeek={handleSeek}
+                  reviewStatus={meeting.transcription_review_status || 'draft'}
+                  isSimulated={isSimulated}
+                />
+              </div>
+            )}
           </div>
         </div>
       ) : (

@@ -118,6 +118,8 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showCommentsPanel, setShowCommentsPanel] = useState(false);
+  const [minutesSidebarCollapsed, setMinutesSidebarCollapsed] = useState(true);
+  const [radarBannerCollapsed, setRadarBannerCollapsed] = useState(false);
 
   // Chave de Ouro: Radar de Execução & Despacho 1-Clique + Selo SHA-256
   const [localTasks, setLocalTasks] = useState<TaskItem[]>(tasks);
@@ -507,12 +509,16 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
         )}
 
         {/* CHAVE DE OURO: Radar de Execução + Selo Criptográfico SHA-256 + Despacho 1-Clique WhatsApp / Email */}
-        <div className="mt-4 pt-3.5 border-t border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-gradient-to-r from-indigo-50/70 via-emerald-50/40 to-transparent dark:from-indigo-950/30 dark:via-emerald-950/20 p-3 rounded-xl">
-          <div className="space-y-1.5 flex-1">
+        <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 bg-gradient-to-r from-indigo-50/70 via-emerald-50/40 to-transparent dark:from-indigo-950/30 dark:via-emerald-950/20 p-3 rounded-xl space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                🏆 Radar de Governação & Execução:
-              </span>
+              <button
+                type="button"
+                onClick={() => setRadarBannerCollapsed((prev) => !prev)}
+                className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 hover:underline"
+              >
+                <span>{radarBannerCollapsed ? '▶' : '▼'} 🏆 Radar de Governação & Execução:</span>
+              </button>
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
                 {executionRate}% Concluído ({completedTasksCount}/{localTasks.length} Tarefas)
               </span>
@@ -523,32 +529,34 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
                 🔒 {integritySeal}
               </span>
             </div>
-            {/* Progress Bar */}
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleWhatsAppDispatch}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 transition-colors"
+              >
+                <span>📲 Despachar no WhatsApp</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleEmailDispatch}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-1.5 transition-colors"
+              >
+                <span>✉️ Despacho Executivo (Email)</span>
+              </button>
+            </div>
+          </div>
+
+          {!radarBannerCollapsed && (
             <div className="w-full max-w-md h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
               <div
                 className="h-full bg-emerald-500 transition-all duration-300"
                 style={{ width: `${executionRate}%` }}
               />
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handleWhatsAppDispatch}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 transition-colors"
-            >
-              <span>📲 Despachar no WhatsApp</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleEmailDispatch}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-1.5 transition-colors"
-            >
-              <span>✉️ Despacho Executivo (Email)</span>
-            </button>
-          </div>
+          )}
         </div>
       </Card>
 
@@ -613,78 +621,94 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
 
       {/* Tab 1: Minutes Content */}
       {activeTab === 'minutes' && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Left Metadata / Sections Sidebar */}
-          <div className="lg:col-span-1 space-y-4">
-            <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-                Estrutura da Ata
-              </h3>
-              {minutes.sections && minutes.sections.length > 0 ? (
-                <ul className="space-y-1.5 text-xs">
-                  {minutes.sections.map((sec: any, idx: number) => (
-                    <li
-                      key={sec.id || idx}
-                      className="p-2 rounded bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
-                    >
-                      {idx + 1}. {sec.title}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-2xs text-slate-400">Sem secções estruturadas adicionais.</p>
-              )}
-            </Card>
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setMinutesSidebarCollapsed((prev) => !prev)}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors"
+            >
+              {minutesSidebarCollapsed
+                ? '➕ Mostrar Coluna de Estrutura & Metadados'
+                : '➖ Colapsar Coluna de Estrutura & Metadados'}
+            </button>
+          </div>
 
-            {minutes.metadata && (
-              <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-                <h3 className="font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-2xs mb-2">
-                  Metadados Formais
-                </h3>
-                {minutes.metadata.president && (
-                  <div>
-                    <span className="text-slate-400 block text-2xs">Presidente:</span>
-                    <span className="font-semibold">{minutes.metadata.president}</span>
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            {/* Left Metadata / Sections Sidebar (Collapsible) */}
+            {!minutesSidebarCollapsed && (
+              <div className="lg:col-span-1 space-y-4">
+                <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
+                    Estrutura da Ata
+                  </h3>
+                  {minutes.sections && minutes.sections.length > 0 ? (
+                    <ul className="space-y-1.5 text-xs">
+                      {minutes.sections.map((sec: any, idx: number) => (
+                        <li
+                          key={sec.id || idx}
+                          className="p-2 rounded bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
+                        >
+                          {idx + 1}. {sec.title}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-2xs text-slate-400">Sem secções estruturadas adicionais.</p>
+                  )}
+                </Card>
+
+                {minutes.metadata && (
+                  <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                    <h3 className="font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-2xs mb-2">
+                      Metadados Formais
+                    </h3>
+                    {minutes.metadata.president && (
+                      <div>
+                        <span className="text-slate-400 block text-2xs">Presidente:</span>
+                        <span className="font-semibold">{minutes.metadata.president}</span>
+                      </div>
+                    )}
+                    {minutes.metadata.secretary && (
+                      <div>
+                        <span className="text-slate-400 block text-2xs">Secretário:</span>
+                        <span className="font-semibold">{minutes.metadata.secretary}</span>
+                      </div>
+                    )}
+                    {minutes.metadata.locationOrMode && (
+                      <div>
+                        <span className="text-slate-400 block text-2xs">Local / Modo:</span>
+                        <span>{minutes.metadata.locationOrMode}</span>
+                      </div>
+                    )}
+                  </Card>
                 )}
-                {minutes.metadata.secretary && (
-                  <div>
-                    <span className="text-slate-400 block text-2xs">Secretário:</span>
-                    <span className="font-semibold">{minutes.metadata.secretary}</span>
+              </div>
+            )}
+
+            {/* Right Editor Area */}
+            <div className={minutesSidebarCollapsed ? 'lg:col-span-4' : 'lg:col-span-3'}>
+              <Card className="p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 min-h-[500px]">
+                {isEditing ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span>Modo de Edição Direta (Markdown suportado)</span>
+                      <span>Guarda para criar uma nova versão auditada.</span>
+                    </div>
+                    <textarea
+                      rows={22}
+                      value={editableContent}
+                      onChange={(e) => setEditableContent(e.target.value)}
+                      className="w-full font-mono text-xs leading-relaxed p-4 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    />
                   </div>
-                )}
-                {minutes.metadata.locationOrMode && (
-                  <div>
-                    <span className="text-slate-400 block text-2xs">Local / Modo:</span>
-                    <span>{minutes.metadata.locationOrMode}</span>
+                ) : (
+                  <div className="prose dark:prose-invert max-w-none text-xs leading-relaxed whitespace-pre-wrap font-sans">
+                    {minutes.content}
                   </div>
                 )}
               </Card>
-            )}
-          </div>
-
-          {/* Right Editor Area */}
-          <div className="lg:col-span-3">
-            <Card className="p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 min-h-[500px]">
-              {isEditing ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span>Modo de Edição Direta (Markdown suportado)</span>
-                    <span>Guarda para criar uma nova versão auditada.</span>
-                  </div>
-                  <textarea
-                    rows={22}
-                    value={editableContent}
-                    onChange={(e) => setEditableContent(e.target.value)}
-                    className="w-full font-mono text-xs leading-relaxed p-4 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
-                  />
-                </div>
-              ) : (
-                <div className="prose dark:prose-invert max-w-none text-xs leading-relaxed whitespace-pre-wrap font-sans">
-                  {minutes.content}
-                </div>
-              )}
-            </Card>
+            </div>
           </div>
         </div>
       )}

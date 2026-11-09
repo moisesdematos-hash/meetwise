@@ -16,6 +16,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
   const navItems = [
     {
@@ -88,55 +89,87 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex transition-colors duration-200">
-      {/* 1. Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 justify-between shrink-0">
+      {/* 1. Desktop Sidebar (Collapsible) */}
+      <aside
+        className={`hidden lg:flex lg:flex-col ${
+          sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'
+        } border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 justify-between shrink-0 transition-all duration-200`}
+      >
         <div>
-          {/* Logo & Org Selector */}
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-            <Link href="/dashboard" className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-deep via-brand-blue to-brand-violet flex items-center justify-center shadow-sm">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+          {/* Logo & Collapse Button */}
+          <div className="p-3.5 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between gap-2">
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2.5 overflow-hidden"
+                title="MEETWISE AI"
+              >
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-deep via-brand-blue to-brand-violet flex items-center justify-center shadow-sm shrink-0">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+                  </svg>
+                </div>
+                {!sidebarCollapsed && (
+                  <div className="flex flex-col truncate">
+                    <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white">
+                      MEETWISE<span className="text-brand-blue">AI</span>
+                    </span>
+                    <span className="text-[9px] uppercase tracking-wider font-semibold text-slate-500">
+                      Espaço de Trabalho
+                    </span>
+                  </div>
+                )}
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed((prev) => !prev)}
+                title={sidebarCollapsed ? 'Expandir coluna lateral' : 'Colapsar coluna lateral'}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {sidebarCollapsed ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  )}
                 </svg>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white">
-                  MEETWISE<span className="text-brand-blue">AI</span>
-                </span>
-                <span className="text-[9px] uppercase tracking-wider font-semibold text-slate-500">
-                  Espaço de Trabalho
-                </span>
-              </div>
-            </Link>
+              </button>
+            </div>
 
             {/* Org Switcher mock / current org */}
-            <div className="mt-4 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2 truncate">
-                <div className="w-6 h-6 rounded bg-brand-blue/10 text-brand-blue font-bold text-xs flex items-center justify-center shrink-0">
-                  O
+            {!sidebarCollapsed && (
+              <div className="mt-4 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-2 truncate">
+                  <div className="w-6 h-6 rounded bg-brand-blue/10 text-brand-blue font-bold text-xs flex items-center justify-center shrink-0">
+                    O
+                  </div>
+                  <div className="truncate">
+                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                      Organização Principal
+                    </p>
+                    <span className="text-[10px] text-slate-400">Plano Free • 45m</span>
+                  </div>
                 </div>
-                <div className="truncate">
-                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                    Organização Principal
-                  </p>
-                  <span className="text-[10px] text-slate-400">Plano Free • 45m</span>
-                </div>
+                <Badge variant="outline" className="text-[9px] uppercase">
+                  Owner
+                </Badge>
               </div>
-              <Badge variant="outline" className="text-[9px] uppercase">
-                Owner
-              </Badge>
-            </div>
+            )}
           </div>
 
           {/* Navigation Links */}
-          <nav className="p-3 space-y-1">
+          <nav className="p-2.5 space-y-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                  title={item.label}
+                  className={`flex items-center ${
+                    sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'
+                  } py-2 rounded-lg text-xs font-semibold transition-colors ${
                     isActive
                       ? 'bg-brand-blue/10 text-brand-blue dark:bg-brand-blue/20 dark:text-blue-400'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
@@ -145,7 +178,7 @@ export default function DashboardLayout({
                   <span className={isActive ? 'text-brand-blue dark:text-blue-400' : 'text-slate-400'}>
                     {item.icon}
                   </span>
-                  <span>{item.label}</span>
+                  {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
@@ -153,27 +186,32 @@ export default function DashboardLayout({
         </div>
 
         {/* Bottom Quota Status & User Area */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-3">
           {/* Quota widget */}
-          <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 text-xs">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-slate-500 font-medium text-[11px]">Consumo do Mês</span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300 text-[11px]">0 / 45 min</span>
+          {!sidebarCollapsed && (
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 text-xs">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-slate-500 font-medium text-[11px]">Consumo do Mês</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300 text-[11px]">0 / 45 min</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-full bg-brand-blue rounded-full" style={{ width: '0%' }} />
+              </div>
             </div>
-            <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-              <div className="h-full bg-brand-blue rounded-full" style={{ width: '0%' }} />
-            </div>
-          </div>
+          )}
 
           {/* Logout button */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors"
+            title="Terminar Sessão"
+            className={`w-full flex items-center ${
+              sidebarCollapsed ? 'justify-center px-2' : 'gap-2 px-3'
+            } py-2 text-xs font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            <span>Terminar Sessão</span>
+            {!sidebarCollapsed && <span>Terminar Sessão</span>}
           </button>
         </div>
       </aside>

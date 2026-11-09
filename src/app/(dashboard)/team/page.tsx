@@ -13,6 +13,7 @@ export default function TeamPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('member');
   const [inviteSuccess, setInviteSuccess] = useState(false);
+  const [rbacCollapsed, setRbacCollapsed] = useState(true);
 
   const handleSendInvite = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,36 +101,49 @@ export default function TeamPage() {
         </CardContent>
       </Card>
 
-      {/* RBAC Info Card */}
+      {/* RBAC Info Card (Collapsible) */}
       <Card className="bg-slate-50/50 dark:bg-slate-900/40">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">Matriz de Papéis & Permissões (RBAC)</CardTitle>
-          <CardDescription className="text-xs">
-            Estrutura hierárquica implementada na base de dados PostgreSQL.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-semibold">Matriz de Papéis & Permissões (RBAC)</CardTitle>
+              <CardDescription className="text-xs">
+                Estrutura hierárquica implementada na base de dados PostgreSQL.
+              </CardDescription>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRbacCollapsed((prev) => !prev)}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+            >
+              {rbacCollapsed ? '➕ Expandir Colunas RBAC' : '➖ Colapsar Colunas RBAC'}
+            </button>
+          </div>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs pt-2">
-          <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Owner</span>
-            <p className="text-[11px] text-slate-500">Acesso absoluto, faturação e eliminação da organização.</p>
-          </div>
-          <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Admin</span>
-            <p className="text-[11px] text-slate-500">Gestão de membros, reuniões e atas sem privilégios de faturação.</p>
-          </div>
-          <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Manager</span>
-            <p className="text-[11px] text-slate-500">Criação, edição e aprovação de atas e reuniões.</p>
-          </div>
-          <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Member</span>
-            <p className="text-[11px] text-slate-500">Upload de reuniões e consulta com chat contextual.</p>
-          </div>
-          <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Viewer</span>
-            <p className="text-[11px] text-slate-500">Acesso estrito de leitura às atas e tarefas atribuídas.</p>
-          </div>
-        </CardContent>
+        {!rbacCollapsed && (
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs pt-2">
+            <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Owner</span>
+              <p className="text-[11px] text-slate-500">Acesso absoluto, faturação e eliminação da organização.</p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Admin</span>
+              <p className="text-[11px] text-slate-500">Gestão de membros, reuniões e atas sem privilégios de faturação.</p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Manager</span>
+              <p className="text-[11px] text-slate-500">Criação, edição e aprovação de atas e reuniões.</p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Member</span>
+              <p className="text-[11px] text-slate-500">Upload de reuniões e consulta com chat contextual.</p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Viewer</span>
+              <p className="text-[11px] text-slate-500">Acesso estrito de leitura às atas e tarefas atribuídas.</p>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {/* Invite Modal */}

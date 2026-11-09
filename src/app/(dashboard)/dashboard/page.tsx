@@ -10,6 +10,8 @@ import { Modal } from '@/components/ui/Modal';
 
 export default function DashboardPage() {
   const [newMeetingModalOpen, setNewMeetingModalOpen] = useState(false);
+  const [metricsCollapsed, setMetricsCollapsed] = useState(false);
+  const [rightColumnCollapsed, setRightColumnCollapsed] = useState(true);
 
   // Mock initial state for fresh organization (Phase 2)
   const meetingsCount = 0;
@@ -30,7 +32,23 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMetricsCollapsed((prev) => !prev)}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50"
+          >
+            {metricsCollapsed ? '➕ Expandir Métricas' : '➖ Colapsar Métricas'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setRightColumnCollapsed((prev) => !prev)}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50"
+          >
+            {rightColumnCollapsed ? '➕ Mostrar Coluna Lateral' : '➖ Colapsar Coluna Lateral'}
+          </button>
+
           <Button
             variant="brand"
             onClick={() => setNewMeetingModalOpen(true)}
@@ -44,7 +62,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 2. Metric Cards Grid */}
+      {/* 2. Metric Cards Grid (Collapsible) */}
+      {!metricsCollapsed && (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="p-4 pb-2">
@@ -112,11 +131,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      )}
 
-      {/* 3. Main Dashboard Sections */}
+      {/* 3. Main Dashboard Sections (Collapsible Columns) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left col: Recent Meetings */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className={`${rightColumnCollapsed ? 'lg:col-span-12' : 'lg:col-span-8'} space-y-4`}>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               Reuniões Recentes
@@ -143,7 +163,8 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Right col: Security Callout & Quick Insights */}
+        {/* Right col: Security Callout & Quick Insights (Collapsible) */}
+        {!rightColumnCollapsed && (
         <div className="lg:col-span-4 space-y-6">
           {/* Security & Multi-tenant Status */}
           <Card className="bg-slate-50/50 dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800">
@@ -190,6 +211,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+        )}
       </div>
 
       {/* Modal: New Meeting (Phase 3 readiness notice) */}

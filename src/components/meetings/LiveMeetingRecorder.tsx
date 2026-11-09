@@ -60,6 +60,8 @@ export function LiveMeetingRecorder({
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const [customAudioName, setCustomAudioName] = useState<string>('');
   const [isRenamingAudio, setIsRenamingAudio] = useState(false);
+  const [dspSettingsCollapsed, setDspSettingsCollapsed] = useState(true);
+  const [pontoZeroCollapsed, setPontoZeroCollapsed] = useState(false);
   const [previousPendingTasks, setPreviousPendingTasks] = useState<
     Array<{
       id: string;
@@ -970,52 +972,60 @@ export function LiveMeetingRecorder({
           {previousPendingTasks.length > 0 && (
             <div className="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60 space-y-2.5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPontoZeroCollapsed((prev) => !prev)}
+                  className="flex items-center gap-2 text-left hover:underline"
+                >
                   <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
-                    ⚡ Ponto Zero da Agenda: Tarefas Pendentes de Reuniões Anteriores ({previousPendingTasks.length})
+                    {pontoZeroCollapsed ? '▶' : '▼'} ⚡ Ponto Zero da Agenda: Tarefas Pendentes de Reuniões Anteriores ({previousPendingTasks.length})
                   </span>
-                </div>
+                </button>
                 <Badge variant="success" className="text-[10px]">
                   Continuidade Institucional
                 </Badge>
               </div>
-              <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
-                Valide com 1 clique o estado das obrigações anteriores — a deliberação entra automaticamente na Ata de hoje:
-              </p>
-              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                {previousPendingTasks.map((pt) => (
-                  <div
-                    key={pt.id}
-                    className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-emerald-200/70 dark:border-emerald-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
-                  >
-                    <div className="space-y-0.5">
-                      <span className="font-semibold text-slate-800 dark:text-slate-100 block">
-                        {pt.title}
-                      </span>
-                      <span className="text-[10px] text-slate-500">
-                        Responsável: <strong>{pt.assignee_name || 'Equipa'}</strong>
-                        {pt.due_date ? ` • Prazo: ${new Date(pt.due_date).toLocaleDateString('pt-PT')}` : ''}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleReviewPriorTask(pt, 'done')}
-                        className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold transition-colors"
+              {!pontoZeroCollapsed && (
+                <>
+                  <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
+                    Valide com 1 clique o estado das obrigações anteriores — a deliberação entra automaticamente na Ata de hoje:
+                  </p>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    {previousPendingTasks.map((pt) => (
+                      <div
+                        key={pt.id}
+                        className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-emerald-200/70 dark:border-emerald-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                       >
-                        ✅ Concluída
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleReviewPriorTask(pt, 'carried_over')}
-                        className="px-2 py-1 rounded bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 text-amber-800 dark:text-amber-200 text-[10px] font-bold transition-colors"
-                      >
-                        ⏳ Em Curso
-                      </button>
-                    </div>
+                        <div className="space-y-0.5">
+                          <span className="font-semibold text-slate-800 dark:text-slate-100 block">
+                            {pt.title}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            Responsável: <strong>{pt.assignee_name || 'Equipa'}</strong>
+                            {pt.due_date ? ` • Prazo: ${new Date(pt.due_date).toLocaleDateString('pt-PT')}` : ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleReviewPriorTask(pt, 'done')}
+                            className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold transition-colors"
+                          >
+                            ✅ Concluída
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleReviewPriorTask(pt, 'carried_over')}
+                            className="px-2 py-1 rounded bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 text-amber-800 dark:text-amber-200 text-[10px] font-bold transition-colors"
+                          >
+                            ⏳ Em Curso
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
           )}
 
@@ -1101,92 +1111,109 @@ export function LiveMeetingRecorder({
             </div>
           </div>
 
-          {/* DSP Studio Controls: Noise Filter + Low Voice Booster */}
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                  <span>🛡️ Estúdio DSP: Gravação Sem Ruído + Compressão Rápida (32 kbps)</span>
-                </span>
-                <span className="text-[11px] text-slate-500">
-                  Corta ruído de fundo (ar condicionado/ventoinha &lt;85Hz e chiado &gt;7.5kHz) e reduz tamanho em 8x.
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={dspNoiseFilter}
-                onChange={(e) => setDspNoiseFilter(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-              />
-            </div>
+          {/* Collapsible DSP Studio Controls & Advanced Options */}
+          <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setDspSettingsCollapsed((prev) => !prev)}
+              className="w-full px-3.5 py-2.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                <span>🛡️ Estúdio DSP (Sem Ruído + Amplificador {voiceGainMultiplier}x) & Opções</span>
+              </span>
+              <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+                {dspSettingsCollapsed ? '▼ Expandir Opções' : '▲ Colapsar Opções'}
+              </span>
+            </button>
 
-            <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-700 dark:text-slate-300">
-                  🔊 Amplificador de Voz Baixa / Baixíssima (Pré-Amp + Compressor AGC):
-                </span>
-                <Badge variant="outline" className="font-mono text-[10px]">
-                  {Math.round(voiceGainMultiplier * 100)}% ({voiceGainMultiplier.toFixed(1)}x)
-                </Badge>
-              </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[
-                  { val: 1.0, label: '1x Normal' },
-                  { val: 2.0, label: '2x Voz Baixa' },
-                  { val: 3.0, label: '3x Muito Baixa' },
-                  { val: 4.0, label: '4x Fundo Sala' },
-                ].map((opt) => (
-                  <button
-                    key={opt.val}
-                    type="button"
-                    onClick={() => setVoiceGainMultiplier(opt.val)}
-                    className={`py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all ${
-                      voiceGainMultiplier === opt.val
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-400'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+            {!dspSettingsCollapsed && (
+              <div className="p-3.5 pt-2 border-t border-slate-200 dark:border-slate-700/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                      <span>Filtro Anti-Ruído + Compressão Rápida (32 kbps)</span>
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Corta ruído de fundo (&lt;85Hz e &gt;7.5kHz) e reduz tamanho em 8x.
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={dspNoiseFilter}
+                    onChange={(e) => setDspNoiseFilter(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-              <div>
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
-                  Gerar Ata automaticamente ao terminar gravação
-                </span>
-                <span className="text-[11px] text-slate-500">
-                  Cria de imediato o resumo executivo, decisões, tarefas e ata estruturada.
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={autoGenerateMinutes}
-                onChange={(e) => setAutoGenerateMinutes(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-              />
-            </div>
+                <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      🔊 Amplificador de Voz Baixa / Baixíssima (Pré-Amp + Compressor AGC):
+                    </span>
+                    <Badge variant="outline" className="font-mono text-[10px]">
+                      {Math.round(voiceGainMultiplier * 100)}% ({voiceGainMultiplier.toFixed(1)}x)
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { val: 1.0, label: '1x Normal' },
+                      { val: 2.0, label: '2x Voz Baixa' },
+                      { val: 3.0, label: '3x Muito Baixa' },
+                      { val: 4.0, label: '4x Fundo Sala' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        type="button"
+                        onClick={() => setVoiceGainMultiplier(opt.val)}
+                        className={`py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all ${
+                          voiceGainMultiplier === opt.val
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-400'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-              <div>
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
-                  Guardar também cópia do áudio no meu computador (Transferências)
-                </span>
-                <span className="text-[11px] text-slate-500">
-                  Descarrega automaticamente o ficheiro .webm para a sua pasta Downloads ao encerrar.
-                </span>
+                <div className="space-y-2 pt-2 border-t border-slate-200/80 dark:border-slate-700/60">
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                        Gerar Ata automaticamente ao terminar gravação
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Cria de imediato o resumo executivo, decisões, tarefas e ata estruturada.
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={autoGenerateMinutes}
+                      onChange={(e) => setAutoGenerateMinutes(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                        Guardar também cópia do áudio no meu computador (Transferências)
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Descarrega automaticamente o ficheiro .webm para a sua pasta Downloads ao encerrar.
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={saveLocalCopy}
+                      onChange={(e) => setSaveLocalCopy(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
               </div>
-              <input
-                type="checkbox"
-                checked={saveLocalCopy}
-                onChange={(e) => setSaveLocalCopy(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-              />
-            </div>
+            )}
           </div>
         </div>
       )}
