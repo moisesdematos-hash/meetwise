@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
+import { createClient } from '@/lib/supabase/client';
 import type { TemplateType } from '@/lib/supabase/database.types';
 
 export interface LiveSegmentItem {
@@ -55,6 +56,20 @@ export function LiveMeetingRecorder({
   const [saveLocalCopy, setSaveLocalCopy] = useState(true);
   const [recordedBytes, setRecordedBytes] = useState(0);
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
+  const [previewCurrentTime, setPreviewCurrentTime] = useState(0);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [customAudioName, setCustomAudioName] = useState<string>('');
+  const [isRenamingAudio, setIsRenamingAudio] = useState(false);
+  const [previousPendingTasks, setPreviousPendingTasks] = useState<
+    Array<{
+      id: string;
+      title: string;
+      assignee_name: string | null;
+      due_date?: string | null;
+      status: string;
+      reviewedInSession?: 'done' | 'carried_over';
+    }>
+  >([]);
   const [recoveredSession, setRecoveredSession] = useState<{
     segments: LiveSegmentItem[];
     elapsedSeconds: number;
@@ -124,6 +139,70 @@ export function LiveMeetingRecorder({
       // Ignore storage access errors
     }
   }, [recoveryStorageKey]);
+
+  // Load open tasks from previous meetings of this organization ("Ponto Zero: Continuidade Institucional")
+  useEffect(() => {
+    if (!organizationId) return;
+    let active = true;
+    async function fetchPriorOpenTasks() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('meeting_tasks')
+          .select('id, title, assignee_name, status, meeting_id')
+          .eq('organization_id', organizationId)
+          .neq('meeting_id', meetingId)
+          .neq('status', 'done')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (active && data) {
+          setPreviousPendingTasks(data);
+        }
+      } catch {
+        // Non-fatal
+      }
+    }
+    fetchPriorOpenTasks();
+    return () => {
+      active = false;
+    };
+  }, [organizationId, meetingId]);
+
+  const handleReviewPriorTask = async (
+    task: { id: string; title: string; assignee_name: string | null },
+    resolution: 'done' | 'carried_over'
+  ) => {
+    setPreviousPendingTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, reviewedInSession: resolution } : t))
+    );
+
+    const endMs = Math.max(1500, elapsedRef.current * 1000);
+    const startMs = Math.max(0, endMs - 3000);
+    const statusLabel =
+      resolution === 'done'
+        ? `Confirmada a conclusão da tarefa pendente da reunião anterior: "${task.title}" (Responsável: ${task.assignee_name || 'Equipa'}).`
+        : `Verificado que a tarefa "${task.title}" (${task.assignee_name || 'Equipa'}) permanece em curso e transita com prioridade para a presente ata.`;
+
+    setLiveSegments((prev) => [
+      ...prev,
+      {
+        id: `followup-seg-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+        speaker_label: activeSpeaker,
+        start_time_ms: startMs,
+        end_time_ms: endMs,
+        text: statusLabel,
+        confidence: 1.0,
+      },
+    ]);
+
+    if (resolution === 'done') {
+      try {
+        const supabase = createClient();
+        await supabase.from('meeting_tasks').update({ status: 'done' }).eq('id', task.id);
+      } catch {}
+    }
+  };
 
   // Continuously auto-save live segments to localStorage during recording
   useEffect(() => {
@@ -491,6 +570,10 @@ export function LiveMeetingRecorder({
   };
 
   const buildSafeFilename = () => {
+    if (customAudioName.trim()) {
+      const cleaned = customAudioName.trim();
+      return cleaned.endsWith('.webm') ? cleaned : `${cleaned}.webm`;
+    }
     const safeTitle = (meetingTitle || 'Reuniao')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
@@ -498,6 +581,29 @@ export function LiveMeetingRecorder({
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
     return `Gravacao-${safeTitle}.webm`;
+  };
+
+  const handleDeleteCurrentRecording = () => {
+    const confirmed = window.confirm(
+      'Tem a certeza de que pretende apagar o áudio gravado até ao momento e reiniciar o gravador?'
+    );
+    if (!confirmed) return;
+
+    cleanupMediaResources();
+    audioChunksRef.current = [];
+    setRecordedBytes(0);
+    setElapsedSeconds(0);
+    elapsedRef.current = 0;
+    if (previewAudioUrl) {
+      URL.revokeObjectURL(previewAudioUrl);
+      setPreviewAudioUrl(null);
+    }
+    setLiveSegments([]);
+    setInterimText('');
+    setStatus('idle');
+    try {
+      localStorage.removeItem(recoveryStorageKey);
+    } catch {}
   };
 
   const handleDownloadCurrentAudio = () => {
@@ -677,7 +783,7 @@ export function LiveMeetingRecorder({
           ? audioBlob
           : new Blob([new Uint8Array(1024)], { type: 'audio/webm' });
 
-      const filename = `reuniao-ao-vivo-${Date.now()}.webm`;
+      const filename = buildSafeFilename();
       const urlRes = await fetch('/api/media/upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -859,6 +965,59 @@ export function LiveMeetingRecorder({
               </p>
             </div>
           </div>
+
+          {/* CHAVE DE OURO - PILAR 1: Ponto Zero da Agenda (Memória Viva entre Reuniões) */}
+          {previousPendingTasks.length > 0 && (
+            <div className="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                    ⚡ Ponto Zero da Agenda: Tarefas Pendentes de Reuniões Anteriores ({previousPendingTasks.length})
+                  </span>
+                </div>
+                <Badge variant="success" className="text-[10px]">
+                  Continuidade Institucional
+                </Badge>
+              </div>
+              <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
+                Valide com 1 clique o estado das obrigações anteriores — a deliberação entra automaticamente na Ata de hoje:
+              </p>
+              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                {previousPendingTasks.map((pt) => (
+                  <div
+                    key={pt.id}
+                    className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-emerald-200/70 dark:border-emerald-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                  >
+                    <div className="space-y-0.5">
+                      <span className="font-semibold text-slate-800 dark:text-slate-100 block">
+                        {pt.title}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Responsável: <strong>{pt.assignee_name || 'Equipa'}</strong>
+                        {pt.due_date ? ` • Prazo: ${new Date(pt.due_date).toLocaleDateString('pt-PT')}` : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleReviewPriorTask(pt, 'done')}
+                        className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold transition-colors"
+                      >
+                        ✅ Concluída
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleReviewPriorTask(pt, 'carried_over')}
+                        className="px-2 py-1 rounded bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 text-amber-800 dark:text-amber-200 text-[10px] font-bold transition-colors"
+                      >
+                        ⏳ Em Curso
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Recording Source Selector: In-Person vs Zoom / WhatsApp / Teams / Meet */}
           <div className="space-y-2">
@@ -1324,69 +1483,149 @@ export function LiveMeetingRecorder({
               </Button>
             </>
           ) : (
-            <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              {/* Recorded Audio File Badge / Download & Preview right next to Pause button */}
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleDownloadCurrentAudio}
-                  disabled={recordedBytes === 0}
-                  title="Clique para transferir o ficheiro de áudio gravado até ao momento"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors text-left disabled:opacity-50"
-                >
-                  <svg
-                    className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+            <div className="w-full space-y-2.5">
+              <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                {/* Recorded Audio File Badge + Rename + Delete + Preview right next to Pause button */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {isRenamingAudio ? (
+                    <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-300 dark:border-indigo-800 px-2.5 py-1 rounded-lg">
+                      <input
+                        type="text"
+                        value={customAudioName}
+                        onChange={(e) => setCustomAudioName(e.target.value)}
+                        placeholder={meetingTitle || 'Nome do ficheiro de áudio'}
+                        onKeyDown={(e) => e.key === 'Enter' && setIsRenamingAudio(false)}
+                        className="text-xs px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-700 text-slate-900 dark:text-white focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsRenamingAudio(false)}
+                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                      >
+                        Guardar
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleDownloadCurrentAudio}
+                      disabled={recordedBytes === 0}
+                      title="Clique para transferir o ficheiro de áudio gravado até ao momento"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors text-left disabled:opacity-50"
+                    >
+                      <svg
+                        className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                        />
+                      </svg>
+                      <div className="text-[11px] leading-tight">
+                        <span className="font-bold text-slate-800 dark:text-slate-100 block">
+                          {buildSafeFilename()}
+                        </span>
+                        <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">
+                          {formatFileSize(recordedBytes)} • ⬇ Guardar Áudio
+                        </span>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Rename & Delete Audio Buttons */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!customAudioName) setCustomAudioName(meetingTitle || 'reuniao');
+                      setIsRenamingAudio((prev) => !prev);
+                    }}
+                    title="Renomear ficheiro de áudio"
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                    ✏️ Renomear Áudio
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteCurrentRecording}
+                    title="Apagar áudio gravado e limpar gravação"
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/70 transition-colors"
+                  >
+                    🗑️ Apagar Áudio
+                  </button>
+
+                  {status === 'paused' && previewAudioUrl && (
+                    <audio
+                      controls
+                      src={previewAudioUrl}
+                      onTimeUpdate={(e) => setPreviewCurrentTime(e.currentTarget.currentTime)}
+                      onPlay={() => setIsPreviewPlaying(true)}
+                      onPause={() => setIsPreviewPlaying(false)}
+                      onEnded={() => setIsPreviewPlaying(false)}
+                      className="h-8 max-w-[210px]"
+                      title="Ouvir gravação até ao momento com transcrição em tempo real"
                     />
-                  </svg>
-                  <div className="text-[11px] leading-tight">
-                    <span className="font-bold text-slate-800 dark:text-slate-100 block">
-                      {buildSafeFilename()}
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePauseResume}
+                  >
+                    {status === 'recording' ? '⏸ Pausar Reunião' : '▶ Retomar Reunião'}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="brand"
+                    size="sm"
+                    onClick={handleStopAndGenerateMinutes}
+                    className="flex items-center gap-2"
+                  >
+                    <span>⏹ Terminar Reunião e Gerar Ata</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Real-Time Synchronized Transcription while listening to Paused Audio */}
+              {status === 'paused' && previewAudioUrl && (
+                <div className="p-2.5 rounded-xl bg-slate-900 text-white border border-indigo-500/40 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        isPreviewPlaying ? 'bg-emerald-400 animate-ping' : 'bg-indigo-400'
+                      }`}
+                    />
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-300 shrink-0">
+                      Transcrição ao Escutar ({formatTimer(Math.floor(previewCurrentTime))}):
                     </span>
-                    <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">
-                      {formatFileSize(recordedBytes)} • ⬇ Guardar Áudio
+                    <span className="font-medium text-slate-100">
+                      {(() => {
+                        const timeMs = previewCurrentTime * 1000;
+                        const activeSeg =
+                          liveSegments.find(
+                            (s) => timeMs >= s.start_time_ms && timeMs <= s.end_time_ms + 1500
+                          ) ||
+                          liveSegments
+                            .filter((s) => s.start_time_ms <= timeMs + 1000)
+                            .slice(-1)[0] ||
+                          liveSegments[liveSegments.length - 1];
+                        return activeSeg
+                          ? `[${activeSeg.speaker_label}]: "${activeSeg.text}"`
+                          : 'Carregue em Play (▶) no reprodutor acima para acompanhar a transcrição sincronizada...';
+                      })()}
                     </span>
                   </div>
-                </button>
-
-                {status === 'paused' && previewAudioUrl && (
-                  <audio
-                    controls
-                    src={previewAudioUrl}
-                    className="h-8 max-w-[200px]"
-                    title="Ouvir gravação até ao momento"
-                  />
-                )}
-              </div>
-
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePauseResume}
-                >
-                  {status === 'recording' ? '⏸ Pausar Reunião' : '▶ Retomar Reunião'}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="brand"
-                  size="sm"
-                  onClick={handleStopAndGenerateMinutes}
-                  className="flex items-center gap-2"
-                >
-                  <span>⏹ Terminar Reunião e Gerar Ata</span>
-                </Button>
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>

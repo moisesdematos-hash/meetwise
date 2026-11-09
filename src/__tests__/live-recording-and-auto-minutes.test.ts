@@ -205,4 +205,36 @@ describe('MEETWISE AI — Real-Time Live Recording & Automatic Minutes Pipeline'
     expect(insertedParticipants).toHaveLength(2);
     expect(updatedMeetingStatus).toBe('completed');
   });
+
+  it('4. should include Ponto Zero follow-up deliberations from prior meetings in the generated Minutes', async () => {
+    const provider = new MockLLMService();
+    const result = await provider.analyzeMeeting({
+      meetingTitle: 'Reunião Ordinária de Acompanhamento',
+      organizationName: 'Empresa Inovação Lda',
+      templateType: 'executive',
+      language: 'pt',
+      segments: [
+        {
+          id: 'ponto-zero-1',
+          speakerLabel: 'Presidente da Mesa',
+          startTime: 0,
+          endTime: 4.0,
+          text: 'Ponto Zero (Seguimento da Ata Anterior): A tarefa "Enviar proposta comercial revista" atribuída a Eng. Carlos foi dada como CONCLUÍDA com sucesso.',
+          confidence: 0.99,
+        },
+        {
+          id: 'live-2',
+          speakerLabel: 'Eng. Carlos',
+          startTime: 5.0,
+          endTime: 12.0,
+          text: 'Fica aprovado avançar para a fase de contratação imediata do fornecedor.',
+          confidence: 0.98,
+        },
+      ],
+    });
+
+    expect(result.minutes.content).toContain('Ponto Zero');
+    expect(result.minutes.content).toContain('Enviar proposta comercial revista');
+    expect(result.decisions.length).toBeGreaterThan(0);
+  });
 });

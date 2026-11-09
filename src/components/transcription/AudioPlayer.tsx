@@ -8,15 +8,46 @@ export interface AudioPlayerRef {
   pause: () => void;
 }
 
+export interface AudioSubtitleSegment {
+  id: string;
+  speaker_label: string;
+  start_time: number;
+  end_time: number;
+  text: string;
+}
+
 interface AudioPlayerProps {
   src: string;
   title?: string;
+  audioFilename?: string;
+  segments?: AudioSubtitleSegment[];
   onTimeUpdate?: (currentTimeSeconds: number) => void;
+  onRenameAudio?: (newFilename: string) => Promise<void> | void;
+  onDeleteAudio?: () => Promise<void> | void;
+  onLiveCaptionCaptured?: (segment: {
+    speaker_label: string;
+    start_time: number;
+    end_time: number;
+    text: string;
+  }) => void;
   initialTime?: number;
 }
 
 export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
-  ({ src, title, onTimeUpdate, initialTime = 0 }, ref) => {
+  (
+    {
+      src,
+      title,
+      audioFilename,
+      segments = [],
+      onTimeUpdate,
+      onRenameAudio,
+      onDeleteAudio,
+      onLiveCaptionCaptured,
+      initialTime = 0,
+    },
+    ref
+  ) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(initialTime);
@@ -26,6 +57,136 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
     const [isMuted, setIsMuted] = useState(false);
     const [voiceBoost, setVoiceBoost] = useState<number>(1.0);
     const [noiseFilterEnabled, setNoiseFilterEnabled] = useState<boolean>(false);
+
+    // Rename & Delete audio state
+    const [isRenaming, setIsRenaming] = useState(false);
+    const [renameValue, setRenameValue] = useState(audioFilename || title || 'Gravacao-Reuniao.webm');
+    const [isBusyAction, setIsBusyAction] = useState(false);
+
+    // Real-time live speech captioning while listening
+    const [liveListeningText, setLiveListeningText] = useState<string>('');
+    const recognitionRef = useRef<any>(null);
+
+    useEffect(() => {
+      if (audioFilename || title) {
+        setRenameValue(audioFilename || title || 'Gravacao-Reuniao.webm');
+      }
+    }, [audioFilename, title]);
+
+    // Start/stop browser SpeechRecognition while audio is playing to provide real-time transcription on playback
+    useEffect(() => {
+      const SpeechRecognitionAPI =
+        typeof window !== 'undefined'
+          ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+          : null;
+
+      if (!isPlaying || !SpeechRecognitionAPI) {
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.onend = null;
+            recognitionRef.current.stop();
+          } catch {}
+          recognitionRef.current = null;
+        }
+        return;
+      }
+
+      try {
+        const recognition = new SpeechRecognitionAPI();
+        recognition.lang = 'pt-PT';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = (event: any) => {
+          let interim = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              const clean = transcript.trim();
+              if (clean) {
+                setLiveListeningText(clean);
+                const curSec = audioRef.current?.currentTime || 0;
+                if (onLiveCaptionCaptured) {
+                  onLiveCaptionCaptured({
+                    speaker_label: 'Áudio Reproduzido',
+                    start_time: Math.max(0, Number((curSec - 3).toFixed(1))),
+                    end_time: Number(curSec.toFixed(1)),
+                    text: clean,
+                  });
+                }
+              }
+            } else {
+              interim += transcript;
+            }
+          }
+          if (interim) {
+            setLiveListeningText(interim);
+          }
+        };
+
+        recognition.onerror = () => {};
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch {
+        // Ignore if SpeechRecognition is already active
+      }
+
+      return () => {
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.onend = null;
+            recognitionRef.current.stop();
+          } catch {}
+          recognitionRef.current = null;
+        }
+      };
+    }, [isPlaying, onLiveCaptionCaptured]);
+
+    // Find the active synchronized segment for current playback time
+    const activeSegment =
+      segments.find(
+        (seg) => currentTime >= seg.start_time && currentTime <= seg.end_time + 0.5
+      ) ||
+      (isPlaying && segments.length > 0
+        ? segments.reduce((prev, curr) =>
+            Math.abs(curr.start_time - currentTime) < Math.abs(prev.start_time - currentTime)
+              ? curr
+              : prev
+          )
+        : null);
+
+    const handleConfirmRename = async () => {
+      const trimmed = renameValue.trim();
+      if (!trimmed || !onRenameAudio) {
+        setIsRenaming(false);
+        return;
+      }
+      try {
+        setIsBusyAction(true);
+        await onRenameAudio(trimmed);
+        setIsRenaming(false);
+      } finally {
+        setIsBusyAction(false);
+      }
+    };
+
+    const handleConfirmDelete = async () => {
+      if (!onDeleteAudio) return;
+      const confirmed = window.confirm(
+        'Tem a certeza de que pretende apagar este ficheiro de áudio da reunião?'
+      );
+      if (!confirmed) return;
+      try {
+        setIsBusyAction(true);
+        if (audioRef.current) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        }
+        await onDeleteAudio();
+      } finally {
+        setIsBusyAction(false);
+      }
+    };
 
     const audioCtxRef = useRef<AudioContext | null>(null);
     const gainNodeRef = useRef<GainNode | null>(null);
@@ -196,16 +357,107 @@ export const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
           onEnded={() => setIsPlaying(false)}
         />
 
-        {title && (
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate max-w-xs">
-              {title}
-            </span>
-            <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
+        {(title || audioFilename) && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              {isRenaming ? (
+                <div className="flex items-center gap-1.5 flex-1">
+                  <input
+                    type="text"
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleConfirmRename();
+                      if (e.key === 'Escape') setIsRenaming(false);
+                    }}
+                    className="flex-1 px-2 py-1 text-xs rounded border border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleConfirmRename}
+                    disabled={isBusyAction}
+                    className="px-2 py-1 rounded bg-indigo-600 text-white text-[11px] font-semibold hover:bg-indigo-700"
+                  >
+                    Guardar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsRenaming(false)}
+                    className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[11px]"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
+                    {audioFilename || title}
+                  </span>
+                  {onRenameAudio && (
+                    <button
+                      type="button"
+                      onClick={() => setIsRenaming(true)}
+                      title="Renomear ficheiro de áudio"
+                      className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                    >
+                      ✏️ Renomear
+                    </button>
+                  )}
+                  {onDeleteAudio && (
+                    <button
+                      type="button"
+                      onClick={handleConfirmDelete}
+                      disabled={isBusyAction}
+                      title="Apagar ficheiro de áudio"
+                      className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 transition-colors"
+                    >
+                      🗑️ Apagar
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 shrink-0">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            </div>
           </div>
         )}
+
+        {/* Real-Time Synchronized Transcription Subtitle Box while Listening */}
+        <div
+          className={`p-3 rounded-xl border transition-all ${
+            isPlaying
+              ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/80 shadow-inner'
+              : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/70 dark:border-slate-800'
+          }`}
+        >
+          <div className="flex items-center justify-between text-[10px] mb-1">
+            <span className="font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isPlaying ? 'bg-indigo-600 animate-ping' : 'bg-slate-400'
+                }`}
+              />
+              {activeSegment
+                ? `🗣️ ${activeSegment.speaker_label} (Transcrição em Tempo Real)`
+                : '📝 Transcrição Sincronizada ao Escutar'}
+            </span>
+            {activeSegment && (
+              <span className="font-mono text-slate-400">
+                {formatTime(activeSegment.start_time)} – {formatTime(activeSegment.end_time)}
+              </span>
+            )}
+          </div>
+          <p className="text-xs font-medium text-slate-900 dark:text-slate-100 leading-relaxed min-h-[2.25rem]">
+            {activeSegment?.text ||
+              liveListeningText ||
+              (isPlaying
+                ? 'A escutar e a sincronizar transcrição em tempo real...'
+                : 'Prima Play (▶) para ouvir o áudio e acompanhar a transcrição em tempo real.')}
+          </p>
+        </div>
 
         {/* Progress Bar / Scrubber */}
         <div className="space-y-1">

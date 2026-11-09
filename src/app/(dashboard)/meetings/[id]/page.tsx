@@ -30,6 +30,7 @@ export default function MeetingDetailPage() {
   const [segments, setSegments] = useState<TranscriptSegmentItem[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
   const [audioUrl, setAudioUrl] = useState<string>('');
+  const [mediaAsset, setMediaAsset] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isSimulated, setIsSimulated] = useState(false);
@@ -135,6 +136,7 @@ export default function MeetingDetailPage() {
 
         if (mediaData && mediaData.length > 0 && isMounted) {
           const asset = mediaData[0];
+          setMediaAsset(asset);
           setAudioUrl(asset.storage_path ? `/api/meetings/${meetingId}/recordings/stream` : '');
         }
 
@@ -238,6 +240,41 @@ export default function MeetingDetailPage() {
   const handleSeek = (seconds: number) => {
     playerRef.current?.seekTo(seconds);
     setCurrentTime(seconds);
+  };
+
+  const handleRenameAudio = async (newName: string) => {
+    if (!meeting?.organization_id) return;
+    const res = await fetch(`/api/meetings/${meetingId}/recordings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        organizationId: meeting.organization_id,
+        newFilename: newName,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Erro ao renomear áudio.');
+    }
+    setMediaAsset((prev: any) =>
+      prev ? { ...prev, original_filename: data.filename } : { original_filename: data.filename }
+    );
+  };
+
+  const handleDeleteAudio = async () => {
+    if (!meeting?.organization_id) return;
+    const res = await fetch(
+      `/api/meetings/${meetingId}/recordings?organizationId=${meeting.organization_id}`,
+      {
+        method: 'DELETE',
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Erro ao apagar áudio.');
+    }
+    setMediaAsset(null);
+    setAudioUrl('');
   };
 
   const formatDuration = (seconds: number | null) => {
@@ -420,7 +457,27 @@ export default function MeetingDetailPage() {
                 ref={playerRef}
                 src={audioUrl || '/sample-audio.mp3'}
                 title={meeting.title}
+                audioFilename={
+                  mediaAsset?.original_filename || `${meeting.title || 'reuniao'}.webm`
+                }
+                segments={segments}
                 onTimeUpdate={(t) => setCurrentTime(t)}
+                onRenameAudio={handleRenameAudio}
+                onDeleteAudio={handleDeleteAudio}
+                onLiveCaptionCaptured={(seg) => {
+                  setSegments((prev) => [
+                    ...prev,
+                    {
+                      id: `live-listen-${Date.now()}`,
+                      speaker_label: seg.speaker_label,
+                      start_time: seg.start_time,
+                      end_time: seg.end_time,
+                      text: seg.text,
+                      confidence: 0.92,
+                      is_edited: false,
+                    },
+                  ]);
+                }}
               />
 
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm space-y-3">
