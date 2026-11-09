@@ -560,80 +560,87 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
         </div>
       </Card>
 
-      {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setActiveTab('minutes')}
-          className={`pb-2.5 px-3 border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === 'minutes'
-              ? 'border-brand-blue text-brand-blue'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          Ata Completa ({minutes.template_type})
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('summary')}
-          className={`pb-2.5 px-3 border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === 'summary'
-              ? 'border-brand-blue text-brand-blue'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          Resumos Inteligentes
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('decisions')}
-          className={`pb-2.5 px-3 border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === 'decisions'
-              ? 'border-brand-blue text-brand-blue'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          Decisões ({decisions.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('tasks')}
-          className={`pb-2.5 px-3 border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === 'tasks'
-              ? 'border-brand-blue text-brand-blue'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          Tarefas ({tasks.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('audit')}
-          className={`pb-2.5 px-3 border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === 'audit'
-              ? 'border-brand-blue text-brand-blue'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          Auditoria & Rastreabilidade ({auditHistory.length})
-        </button>
+      {/* Tabs Navigation + Structure Toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+        <div className="flex items-center gap-2 text-xs font-semibold overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setActiveTab('minutes')}
+            className={`pb-2 px-3 border-b-2 -mb-[9px] transition-colors whitespace-nowrap ${
+              activeTab === 'minutes'
+                ? 'border-brand-blue text-brand-blue'
+                : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+            }`}
+          >
+            Ata Completa ({minutes.template_type})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('summary')}
+            className={`pb-2 px-3 border-b-2 -mb-[9px] transition-colors whitespace-nowrap ${
+              activeTab === 'summary'
+                ? 'border-brand-blue text-brand-blue'
+                : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+            }`}
+          >
+            Resumos Inteligentes
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('decisions')}
+            className={`pb-2 px-3 border-b-2 -mb-[9px] transition-colors whitespace-nowrap ${
+              activeTab === 'decisions'
+                ? 'border-brand-blue text-brand-blue'
+                : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+            }`}
+          >
+            Decisões ({decisions.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('tasks')}
+            className={`pb-2 px-3 border-b-2 -mb-[9px] transition-colors whitespace-nowrap ${
+              activeTab === 'tasks'
+                ? 'border-brand-blue text-brand-blue'
+                : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+            }`}
+          >
+            Tarefas ({tasks.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('audit')}
+            className={`pb-2 px-3 border-b-2 -mb-[9px] transition-colors whitespace-nowrap ${
+              activeTab === 'audit'
+                ? 'border-brand-blue text-brand-blue'
+                : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+            }`}
+          >
+            Auditoria & Rastreabilidade ({auditHistory.length})
+          </button>
+        </div>
+
+        {activeTab === 'minutes' && (
+          <button
+            type="button"
+            onClick={() => setMinutesSidebarCollapsed((prev) => !prev)}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all self-end sm:self-auto ${
+              !minutesSidebarCollapsed
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 12h8m-8 6h16" />
+            </svg>
+            <span>Estrutura & Mesa</span>
+          </button>
+        )}
       </div>
 
       {/* Tab 1: Minutes Content */}
       {activeTab === 'minutes' && (
         <div className="space-y-2.5">
-          <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={() => setMinutesSidebarCollapsed((prev) => !prev)}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors"
-            >
-              {minutesSidebarCollapsed
-                ? '➕ Mostrar Coluna de Estrutura & Metadados'
-                : '➖ Colapsar Coluna de Estrutura & Metadados'}
-            </button>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             {/* Left Metadata / Sections Sidebar (Collapsible) */}
             {!minutesSidebarCollapsed && (

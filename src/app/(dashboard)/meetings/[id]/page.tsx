@@ -408,37 +408,127 @@ export default function MeetingDetailPage() {
         </Card>
       )}
 
-      {/* Main Tabs Switcher */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-        <button
-          type="button"
-          onClick={() => setMainTab('transcription')}
-          className={`pb-2 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-            mainTab === 'transcription'
-              ? 'border-brand-blue text-brand-blue'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
-          </svg>
-          <span>Transcrição & Áudio ({segments.length} trechos)</span>
-        </button>
+      {/* Main Tabs Switcher + Integrated Layout Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-2.5">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMainTab('transcription')}
+            className={`pb-2 px-3 text-xs font-semibold border-b-2 -mb-[11px] transition-colors flex items-center gap-2 ${
+              mainTab === 'transcription'
+                ? 'border-brand-blue text-brand-blue'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+            </svg>
+            <span>Transcrição & Áudio ({segments.length} trechos)</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setMainTab('intelligence')}
-          className={`pb-2 px-3 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-            mainTab === 'intelligence'
-              ? 'border-brand-blue text-brand-blue'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <span>Atas, Resumos & Decisões {minutes ? '✓' : ''}</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setMainTab('intelligence')}
+            className={`pb-2 px-3 text-xs font-semibold border-b-2 -mb-[11px] transition-colors flex items-center gap-2 ${
+              mainTab === 'intelligence'
+                ? 'border-brand-blue text-brand-blue'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>Atas, Resumos & Decisões {minutes ? '✓' : ''}</span>
+          </button>
+        </div>
+
+        {/* Sleek Segmented Workspace View Switcher */}
+        {mainTab === 'transcription' && !isStillProcessing && (
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/70">
+              <button
+                type="button"
+                onClick={() => {
+                  setLeftColumnCollapsed(false);
+                  setRightColumnCollapsed(false);
+                }}
+                title="Vista Dividida (Áudio + Transcrição)"
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  !leftColumnCollapsed && !rightColumnCollapsed
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 4v16M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
+                </svg>
+                <span>Dividido</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLeftColumnCollapsed(true);
+                  setRightColumnCollapsed(false);
+                }}
+                title="Foco na Transcrição (Colapsar Áudio)"
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  leftColumnCollapsed && !rightColumnCollapsed
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 12h16M4 18h10" />
+                </svg>
+                <span>Só Transcrição</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLeftColumnCollapsed(false);
+                  setRightColumnCollapsed(true);
+                }}
+                title="Foco no Reprodutor de Áudio (Colapsar Transcrição)"
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  !leftColumnCollapsed && rightColumnCollapsed
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                </svg>
+                <span>Só Áudio</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                const allCollapsed = detailsCardCollapsed && participantsCardCollapsed;
+                setDetailsCardCollapsed(!allCollapsed);
+                setParticipantsCardCollapsed(!allCollapsed);
+              }}
+              title={
+                detailsCardCollapsed && participantsCardCollapsed
+                  ? 'Mostrar Detalhes e Intervenientes'
+                  : 'Ocultar Detalhes e Intervenientes'
+              }
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
+                !(detailsCardCollapsed && participantsCardCollapsed)
+                  ? 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300'
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Metadados</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {isStillProcessing ? (
@@ -456,48 +546,6 @@ export default function MeetingDetailPage() {
       ) : mainTab === 'transcription' ? (
         /* Collapsible Dual Pane Layout */
         <div className="space-y-3">
-          {/* Column Collapse Controls Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-100/80 dark:bg-slate-900/70 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-            <span className="font-semibold text-slate-600 dark:text-slate-400">
-              Visualização de Colunas:
-            </span>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setLeftColumnCollapsed((prev) => !prev);
-                  if (rightColumnCollapsed && !leftColumnCollapsed) setRightColumnCollapsed(false);
-                }}
-                className="px-2.5 py-1 rounded-lg font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors"
-              >
-                {leftColumnCollapsed ? '➕ Mostrar Coluna de Áudio' : '➖ Colapsar Coluna de Áudio'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setRightColumnCollapsed((prev) => !prev);
-                  if (leftColumnCollapsed && !rightColumnCollapsed) setLeftColumnCollapsed(false);
-                }}
-                className="px-2.5 py-1 rounded-lg font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors"
-              >
-                {rightColumnCollapsed ? '➕ Mostrar Coluna de Transcrição' : '➖ Colapsar Coluna de Transcrição'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const allCollapsed = detailsCardCollapsed && participantsCardCollapsed;
-                  setDetailsCardCollapsed(!allCollapsed);
-                  setParticipantsCardCollapsed(!allCollapsed);
-                }}
-                className="px-2.5 py-1 rounded-lg font-semibold bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition-colors"
-              >
-                {detailsCardCollapsed && participantsCardCollapsed
-                  ? '📂 Expandir Painéis Secundários'
-                  : '📁 Colapsar Painéis Secundários'}
-              </button>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[550px]">
             {/* Left Pane: Media Player & Meeting Metadata */}
             {!leftColumnCollapsed && (
@@ -544,9 +592,16 @@ export default function MeetingDetailPage() {
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
                         Detalhes da Reunião ({formatDuration(meeting.duration_seconds)} • {segments.length} trechos)
                       </h4>
-                      <span className="text-xs text-slate-400 font-bold">
-                        {detailsCardCollapsed ? '▼ Expandir' : '▲ Colapsar'}
-                      </span>
+                      <svg
+                        className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                          detailsCardCollapsed ? '' : 'rotate-180'
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </button>
 
                     {!detailsCardCollapsed && (
@@ -604,9 +659,16 @@ export default function MeetingDetailPage() {
                           Array.from(new Set(segments.map((s) => s.speaker_label))).length}
                         )
                       </h4>
-                      <span className="text-xs text-slate-400 font-bold">
-                        {participantsCardCollapsed ? '▼ Expandir' : '▲ Colapsar'}
-                      </span>
+                      <svg
+                        className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                          participantsCardCollapsed ? '' : 'rotate-180'
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </button>
 
                     {!participantsCardCollapsed && (
